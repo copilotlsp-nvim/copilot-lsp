@@ -12,37 +12,13 @@ end
 ---@param fn fun(...: any)
 ---@param delay integer
 function M.debounce(fn, delay)
-    local running = false
-    local timer = assert(vim.uv.new_timer())
-
-    -- Ugly hack to ensure timer is closed when the function is garbage collected
-    -- unfortunate but necessary to avoid creating a new timer for each call.
-    --
-    -- In LuaJIT, only userdata can have finalizers. `newproxy` creates an opaque userdata
-    -- which we can attach a finalizer to and use as a "canary."
-    local proxy = newproxy(true)
-    getmetatable(proxy).__gc = function()
-        if not timer:is_closing() then
-            timer:close()
-        end
-    end
-    local args
-
+    local timer = vim.uv.new_timer()
     return function(...)
-        args = { ... }
-        local _ = proxy
-        if running then
-            return
-        end
-        running = true
-        timer:start(
-            delay,
-            0,
-            vim.schedule_wrap(function()
-                fn(unpack(args))
-                running = false
-            end)
-        )
+        local argv = vim.F.pack_len(...)
+        timer:start(delay, 0, function()
+            timer:stop()
+            vim.schedule_wrap(fn)(vim.F.unpack_len(argv))
+        end)
     end
 end
 
