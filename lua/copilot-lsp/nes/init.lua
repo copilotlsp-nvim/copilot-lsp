@@ -39,6 +39,15 @@ function M.apply_pending_nes(bufnr)
     if not state then
         return
     end
+    ---@type lsp.Location
+    local jump_loc = {
+        uri = state.textDocument.uri,
+        range = {
+            start = state.range["end"],
+            ["end"] = state.range["end"],
+        },
+    }
+    vim.lsp.util.show_document(jump_loc, "utf-16", { focus = true })
     utils.apply_inline_edit(state)
     nes_ui.clear_suggestion(bufnr, nes_ns)
 end
