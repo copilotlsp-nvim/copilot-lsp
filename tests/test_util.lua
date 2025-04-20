@@ -19,17 +19,17 @@ T["debounce"]["debounces calls to a function"] = function()
         _G.called = _G.called + 1
     end
 
-    local debounced_fn = require("copilot-lsp.util").debounce(fn, 250)
+    local debounced_fn = require("copilot-lsp.util").debounce(fn, 500)
     debounced_fn()
     ]])
 
     local called = child.lua("return _G.called")
     eq(called, 0)
 
-    vim.loop.sleep(200)
+    vim.loop.sleep(100)
     called = child.lua("return _G.called")
     eq(called, 0)
-    vim.loop.sleep(200)
+    vim.loop.sleep(500)
     called = child.lua("return _G.called")
     eq(called, 1)
 end
@@ -49,13 +49,13 @@ T["debounce"]["function is called with final calls params"] = function()
     local called = child.lua("return _G.called")
     eq(called, 0)
 
-    vim.loop.sleep(200)
+    vim.loop.sleep(100)
     called = child.lua("return _G.called")
     eq(called, 0)
-    vim.loop.sleep(200)
+    vim.loop.sleep(100)
     called = child.lua("return _G.called")
     eq(called, 0)
-    vim.loop.sleep(200)
+    vim.loop.sleep(500)
     called = child.lua("return _G.called")
     eq(called, 3)
 end
