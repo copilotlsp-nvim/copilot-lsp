@@ -25,6 +25,7 @@ To use the plugin, add the following to your Neovim configuration:
 return {
     "copilotlsp-nvim/copilot-lsp",
     init = function()
+        vim.g.copilot_nes_debounce = 500
         vim.lsp.enable("copilot")
         vim.keymap.set("n", "<tab>", function()
             require("copilot-lsp.nes").apply_pending_nes()
