@@ -26,14 +26,15 @@ function M.debounce(fn, delay)
             timer:close()
         end
     end
+    local args
 
     return function(...)
+        args = { ... }
         local _ = proxy
         if running then
             return
         end
         running = true
-        local args = { ... }
         timer:start(
             delay,
             0,
