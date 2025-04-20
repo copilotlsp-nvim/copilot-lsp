@@ -5,6 +5,7 @@ local M = {}
 ---@param ns_id integer
 local function _dismiss_suggestion_ui(bufnr, suggestion_ui, ns_id)
     pcall(vim.api.nvim_win_close, suggestion_ui.preview_winnr, true)
+    pcall(vim.api.nvim_win_close, suggestion_ui.hint_winnr, true)
     pcall(vim.api.nvim_buf_clear_namespace, bufnr, ns_id, 0, -1)
 end
 
@@ -134,6 +135,27 @@ function M._display_next_suggestion(edits, ns_id)
 
         ui.preview_winnr = preview_winnr
     end
+
+    local hint_bufnr = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(hint_bufnr, 0, -1, false, { " ⇥ Accept" })
+
+    vim.bo[hint_bufnr].modifiable = false
+    vim.bo[hint_bufnr].buflisted = false
+    vim.bo[hint_bufnr].buftype = "nofile"
+    vim.bo[hint_bufnr].bufhidden = "wipe"
+
+    local hint_winnr = vim.api.nvim_open_win(hint_bufnr, false, {
+        relative = "cursor",
+        width = 10,
+        height = 1,
+        row = (suggestion.range["end"].line + lines.same_line) - vim.api.nvim_win_get_cursor(0)[1] - 1,
+        col = 0,
+        zindex = 150, -- above ins-completion, below messages
+        style = "minimal",
+        border = "none",
+    })
+
+    ui.hint_winnr = hint_winnr
 
     suggestion.ui = ui
 

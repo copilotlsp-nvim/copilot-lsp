@@ -11,6 +11,7 @@
 
 ---@class nes.EditSuggestionUI
 ---@field preview_winnr? integer
+---@field hint_winnr? integer
 
 ---@class nes.DeleteExtmark
 --- Holds row information for delete highlight extmark.
