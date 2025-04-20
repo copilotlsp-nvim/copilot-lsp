@@ -31,25 +31,36 @@ function M.request_nes(copilot_lss)
 end
 
 ---@param bufnr? integer
+---@return boolean
 function M.apply_pending_nes(bufnr)
     bufnr = bufnr and bufnr > 0 and bufnr or vim.api.nvim_get_current_buf()
 
     ---@type copilotlsp.InlineEdit
     local state = vim.b[bufnr].nes_state
     if not state then
-        return
+        return false
     end
-    ---@type lsp.Location
-    local jump_loc = {
-        uri = state.textDocument.uri,
-        range = {
-            start = state.range["end"],
-            ["end"] = state.range["end"],
-        },
-    }
-    vim.lsp.util.show_document(jump_loc, "utf-16", { focus = true })
-    utils.apply_inline_edit(state)
-    nes_ui.clear_suggestion(bufnr, nes_ns)
+    vim.schedule(function()
+        local prev_mode = vim.api.nvim_get_mode().mode
+        if prev_mode == "i" then
+            vim.cmd("stopinsert!")
+        end
+        ---@type lsp.Location
+        local jump_loc = {
+            uri = state.textDocument.uri,
+            range = {
+                start = state.range["end"],
+                ["end"] = state.range["end"],
+            },
+        }
+        vim.lsp.util.show_document(jump_loc, "utf-16", { focus = true })
+        utils.apply_inline_edit(state)
+        nes_ui.clear_suggestion(bufnr, nes_ns)
+        if prev_mode == "i" then
+            vim.cmd("startinsert")
+        end
+    end)
+    return true
 end
 
 return M
