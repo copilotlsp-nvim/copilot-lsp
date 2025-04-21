@@ -1,3 +1,5 @@
+local version = vim.version()
+
 ---@type vim.lsp.Config
 return {
     --NOTE: This name means that existing blink completion works
@@ -7,8 +9,10 @@ return {
         "--stdio",
     },
     init_options = {
-        --TODO: Grab versions from the editor
-        editorInfo = { name = "neovim", version = "0.11" },
+        editorInfo = {
+            name = "neovim",
+            version = string.format("%d.%d.%d", version.major, version.minor, version.patch),
+        },
         editorPluginInfo = {
             name = "Github Copilot LSP for Neovim",
             version = "0.0.1",
@@ -19,6 +23,11 @@ return {
             enabled = true,
         },
     },
+    handlers = setmetatable({}, {
+        __index = function(_, method)
+            return require("copilot-lsp.handlers")[method]
+        end,
+    }),
     root_dir = vim.uv.cwd(),
     on_init = function(client)
         vim.api.nvim_set_hl(0, "NesAdd", { link = "DiffAdd", default = true })
