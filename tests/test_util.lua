@@ -28,12 +28,12 @@ T["debounce"]["debounces calls to a function"] = function()
     end)
     eq(called, 0)
 
-    vim.loop.sleep(100)
+    vim.uv.sleep(100)
     called = child.lua_func(function()
         return _G.called
     end)
     eq(called, 0)
-    vim.loop.sleep(500)
+    vim.uv.sleep(500)
     called = child.lua_func(function()
         return _G.called
     end)
@@ -55,13 +55,13 @@ T["debounce"]["function is called with final calls params"] = function()
     local called = child.lua("return _G.called")
     eq(called, 0)
 
-    vim.loop.sleep(100)
+    vim.uv.sleep(100)
     called = child.lua("return _G.called")
     eq(called, 0)
-    vim.loop.sleep(100)
+    vim.uv.sleep(100)
     called = child.lua("return _G.called")
     eq(called, 0)
-    vim.loop.sleep(500)
+    vim.uv.sleep(500)
     called = child.lua("return _G.called")
     eq(called, 3)
 end
@@ -88,7 +88,7 @@ T["debounce"]["function is only called once"] = function()
     end)
     eq(#called, 0)
 
-    vim.loop.sleep(500)
+    vim.uv.sleep(500)
 
     called = child.lua_func(function()
         return _G.called
@@ -103,7 +103,7 @@ T["debounce"]["function is only called once"] = function()
         _G.debounced_fn(9)
     end)
 
-    vim.loop.sleep(500)
+    vim.uv.sleep(500)
 
     called = child.lua_func(function()
         return _G.called
