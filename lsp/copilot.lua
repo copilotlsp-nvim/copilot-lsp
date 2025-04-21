@@ -41,12 +41,12 @@ return {
         -- end)
 
         --NOTE: NES Completions
+        local debounced_request = require("copilot-lsp.util").debounce(
+            require("copilot-lsp.nes").request_nes,
+            vim.g.copilot_nes_debounce or 500
+        )
         vim.api.nvim_create_autocmd({ "TextChangedI", "TextChanged" }, {
             callback = function()
-                local debounced_request = require("copilot-lsp.util").debounce(
-                    require("copilot-lsp.nes").request_nes,
-                    vim.g.copilot_nes_debounce or 500
-                )
                 debounced_request(client)
             end,
             group = au,
