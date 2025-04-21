@@ -111,7 +111,7 @@ local function sign_in(client_id, bufnr)
     client:request(methods.signIn, vim.empty_dict(), nil, bufnr)
 end
 
----@param res {busy: boolean, kind: 'Normal'|'Error'|'Warning'|'Incative', message: string}
+---@param res {busy: boolean, kind: 'Normal'|'Error'|'Warning'|'Inactive', message: string}
 M["didChangeStatus"] = function(err, res, ctx)
     if err then
         return
