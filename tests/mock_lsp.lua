@@ -43,8 +43,8 @@ local function getNesResponse(td)
                 {
                     command = { title = "mock", command = "mock" },
                     range = {
-                        start = { line = 0, character = 7 },
-                        ["end"] = { line = 1, character = 8 },
+                        start = { line = 1, character = 0 },
+                        ["end"] = { line = 2, character = 0 },
                     },
                     textDocument = td,
                     text = "",

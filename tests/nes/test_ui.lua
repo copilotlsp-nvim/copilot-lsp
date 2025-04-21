@@ -71,7 +71,7 @@ T["diff placement calculations"] = MiniTest.new_set({
                 added_lines = { "" },
                 added_lines_count = 0,
                 delete_extmark = {
-                    end_row = 2,
+                    end_row = 1,
                     row = 0,
                 },
                 deleted_lines_count = 1,
@@ -111,7 +111,7 @@ T["diff placement calculations"] = MiniTest.new_set({
                 added_lines = { "mock", "more text" },
                 added_lines_count = 2,
                 delete_extmark = {
-                    end_row = 2,
+                    end_row = 1,
                     row = 0,
                 },
                 deleted_lines_count = 1,

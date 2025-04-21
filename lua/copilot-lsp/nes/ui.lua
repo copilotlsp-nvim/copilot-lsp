@@ -42,7 +42,10 @@ function M._calculate_lines(suggestion)
     ---@type nes.DeleteExtmark
     local delete_extmark = {
         row = suggestion.range.start.line,
-        end_row = suggestion.range["end"].line + 1,
+        end_row = (
+            suggestion.range["end"].character ~= 0 and suggestion.range["end"].line + 1
+            or suggestion.range["end"].line
+        ),
     }
 
     -- Calculate positions for virtual lines extmark
