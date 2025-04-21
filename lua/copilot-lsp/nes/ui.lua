@@ -60,6 +60,13 @@ function M._calculate_lines(suggestion)
         row = suggestion.range["end"].line + deleted_lines_count + 1,
     }
 
+    -- Calculate positions for hint window
+    ---@type nes.FloatWin
+    local hint_win = {
+        row = (suggestion.range["end"].line + same_line) - vim.api.nvim_win_get_cursor(0)[1] - 1,
+        height = 1,
+    }
+
     return {
         deleted_lines_count = deleted_lines_count,
         added_lines = added_lines,
@@ -68,6 +75,7 @@ function M._calculate_lines(suggestion)
         delete_extmark = delete_extmark,
         virt_lines_extmark = virt_lines_extmark,
         float_win = float_win,
+        hint_win = hint_win,
     }
 end
 
@@ -147,8 +155,8 @@ function M._display_next_suggestion(edits, ns_id)
     local hint_winnr = vim.api.nvim_open_win(hint_bufnr, false, {
         relative = "cursor",
         width = 10,
-        height = 1,
-        row = (suggestion.range["end"].line + lines.same_line) - vim.api.nvim_win_get_cursor(0)[1] - 1,
+        height = lines.hint_win.height,
+        row = lines.hint_win.row,
         col = 0,
         zindex = 150, -- above ins-completion, below messages
         style = "minimal",

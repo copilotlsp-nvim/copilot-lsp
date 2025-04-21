@@ -37,3 +37,4 @@
 ---@field delete_extmark nes.DeleteExtmark
 ---@field virt_lines_extmark nes.VirtLinesExtmark
 ---@field float_win nes.FloatWin
+---@field hint_win nes.FloatWin
