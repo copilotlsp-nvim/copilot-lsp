@@ -53,6 +53,21 @@ local function getNesResponse(td)
                 },
             },
         },
+        ["addonly_edit.txt"] = {
+            edits = {
+                {
+                    command = { title = "mock", command = "mock" },
+                    range = {
+                        start = { line = 2, character = 0 },
+                        ["end"] = { line = 2, character = 0 },
+                    },
+                    textDocument = td,
+                    text = "line 3\n",
+                    ---@diagnostic disable-next-line: assign-type-mismatch
+                    newText = nil,
+                },
+            },
+        },
     }
     local response = responses[filename]
     assert(response, "unhandled doc")
@@ -83,8 +98,6 @@ function M.server()
         table.insert(M.messages, { method = method, params = params })
         if method == "exit" then
             closing = true
-        elseif method == "fakesignin" then
-            --
         end
     end
 

@@ -9,7 +9,7 @@ T["diff placement calculations"] = MiniTest.new_set({
         {
             --- Same line edit
             {
-                command = { title = "mock", command = "mock" },
+                command = { title = "sameline", command = "mock" },
                 range = {
                     start = {
                         line = 0,
@@ -49,7 +49,7 @@ T["diff placement calculations"] = MiniTest.new_set({
         {
             --- removal only
             {
-                command = { title = "mock", command = "mock" },
+                command = { title = "removal", command = "mock" },
                 range = {
                     start = {
                         line = 0,
@@ -77,11 +77,11 @@ T["diff placement calculations"] = MiniTest.new_set({
                 deleted_lines_count = 1,
                 float_win = {
                     height = 1,
-                    row = 3,
+                    row = 2,
                 },
                 same_line = 0,
                 virt_lines_extmark = {
-                    row = 1,
+                    row = 0,
                     virt_lines_count = 0,
                 },
             },
@@ -89,7 +89,7 @@ T["diff placement calculations"] = MiniTest.new_set({
         {
             --- remove one add 2
             {
-                command = { title = "mock", command = "mock" },
+                command = { title = "remove1add2", command = "mock" },
                 range = {
                     start = {
                         line = 0,
@@ -117,12 +117,46 @@ T["diff placement calculations"] = MiniTest.new_set({
                 deleted_lines_count = 1,
                 float_win = {
                     height = 2,
-                    row = 3,
+                    row = 2,
                 },
                 same_line = 0,
                 virt_lines_extmark = {
-                    row = 1,
+                    row = 0,
                     virt_lines_count = 2,
+                },
+            },
+        },
+        {
+            --- add only
+            {
+                command = { title = "add only", command = "mock" },
+                range = {
+                    start = { line = 2, character = 0 },
+                    ["end"] = { line = 2, character = 0 },
+                },
+                textDocument = {
+                    uri = "mock",
+                    version = 1,
+                },
+                text = "line 3\n",
+                newText = "line 3\n",
+            },
+            {
+                added_lines = { "line 3" },
+                added_lines_count = 1,
+                deleted_lines_count = 1,
+                delete_extmark = {
+                    end_row = 2,
+                    row = 2,
+                },
+                float_win = {
+                    height = 1,
+                    row = 3,
+                },
+                same_line = 1,
+                virt_lines_extmark = {
+                    row = 1,
+                    virt_lines_count = 1,
                 },
             },
         },

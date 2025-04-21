@@ -23,12 +23,16 @@ function M.clear_suggestion(bufnr, ns_id)
     vim.b[bufnr].nes_state = nil
 end
 
+local function trim_end(s)
+    return s:gsub("%s+$", "")
+end
+
 ---@private
 ---@param suggestion copilotlsp.InlineEdit
 ---@return nes.LineCalculationResult
 function M._calculate_lines(suggestion)
     local deleted_lines_count = suggestion.range["end"].line - suggestion.range.start.line
-    local added_lines = vim.split(suggestion.newText, "\n")
+    local added_lines = vim.split(trim_end(suggestion.newText), "\n")
     local added_lines_count = suggestion.newText == "" and 0 or #added_lines
     local same_line = 0
 
@@ -37,6 +41,15 @@ function M._calculate_lines(suggestion)
         deleted_lines_count = 1
         same_line = 1
     end
+
+    -- if
+    --     suggestion.range.start.line == suggestion.range["end"].line
+    --     and suggestion.range.start.character == suggestion.range["end"].character
+    -- then
+    --     --add only
+    --     TODO: Do we need to position specifically for add only?
+    --     UI tests seem to say no
+    -- end
 
     -- Calculate positions for delete highlight extmark
     ---@type nes.DeleteExtmark
@@ -51,7 +64,10 @@ function M._calculate_lines(suggestion)
     -- Calculate positions for virtual lines extmark
     ---@type nes.VirtLinesExtmark
     local virt_lines_extmark = {
-        row = suggestion.range["end"].line,
+        row = (
+            suggestion.range["end"].character ~= 0 and suggestion.range["end"].line
+            or suggestion.range["end"].line - 1
+        ),
         virt_lines_count = added_lines_count,
     }
 
@@ -59,7 +75,7 @@ function M._calculate_lines(suggestion)
     ---@type nes.FloatWin
     local float_win = {
         height = #added_lines,
-        row = suggestion.range["end"].line + deleted_lines_count + 1,
+        row = suggestion.range["end"].line + deleted_lines_count + (suggestion.range["end"].character ~= 0 and 1 or 0),
     }
 
     return {

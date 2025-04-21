@@ -1,5 +1,4 @@
 local eq = MiniTest.expect.equality
-local neq = MiniTest.expect.no_equality
 local ref = MiniTest.expect.reference_screenshot
 
 local child = MiniTest.new_child_neovim()
@@ -80,4 +79,23 @@ T["nes"]["removal edit"] = function()
     ref(child.get_screenshot())
 end
 
+T["nes"]["add only edit"] = function()
+    child.cmd("edit tests/fixtures/addonly_edit.txt")
+    ref(child.get_screenshot())
+    vim.uv.sleep(500)
+    local lsp_name = child.lua_func(function()
+        return vim.lsp.get_clients()[1].name
+    end)
+    eq(lsp_name, "copilot")
+    child.lua_func(function()
+        local copilot = vim.lsp.get_clients()[1]
+        require("copilot-lsp.nes").request_nes(copilot)
+    end)
+    vim.uv.sleep(500)
+    ref(child.get_screenshot())
+    child.lua_func(function()
+        require("copilot-lsp.nes").apply_pending_nes(0)
+    end)
+    ref(child.get_screenshot())
+end
 return T
