@@ -4,7 +4,6 @@
 ---@field text string
 ---@field newText string
 ---@field textDocument lsp.VersionedTextDocumentIdentifier
----@field ui nes.EditSuggestionUI?
 
 ---@class copilotlsp.copilotInlineEditResponse
 ---@field edits copilotlsp.InlineEdit[]
@@ -22,11 +21,6 @@
 ---@field row number
 ---@field virt_lines_count number
 
----@class nes.FloatWin
---- Defines dimensions and position for the floating window.
----@field height number
----@field row number
-
 ---@class nes.LineCalculationResult
 --- The result of calculating lines for inline suggestion UI.
 ---@field deleted_lines_count number
@@ -35,4 +29,3 @@
 ---@field same_line number
 ---@field delete_extmark nes.DeleteExtmark
 ---@field virt_lines_extmark nes.VirtLinesExtmark
----@field float_win nes.FloatWin

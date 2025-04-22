@@ -1,10 +1,8 @@
 local M = {}
 
 ---@param bufnr integer
----@param suggestion_ui nes.EditSuggestionUI
 ---@param ns_id integer
-local function _dismiss_suggestion_ui(bufnr, suggestion_ui, ns_id)
-    pcall(vim.api.nvim_win_close, suggestion_ui.preview_winnr, true)
+local function _dismiss_suggestion(bufnr, ns_id)
     pcall(vim.api.nvim_buf_clear_namespace, bufnr, ns_id, 0, -1)
 end
 
@@ -19,7 +17,7 @@ function M.clear_suggestion(bufnr, ns_id)
         return
     end
 
-    _dismiss_suggestion_ui(bufnr, state.ui, ns_id)
+    _dismiss_suggestion(bufnr, ns_id)
     vim.b[bufnr].nes_state = nil
 end
 
@@ -71,13 +69,6 @@ function M._calculate_lines(suggestion)
         virt_lines_count = added_lines_count,
     }
 
-    -- Calculate positions for floating window
-    ---@type nes.FloatWin
-    local float_win = {
-        height = #added_lines,
-        row = suggestion.range["end"].line + deleted_lines_count + (suggestion.range["end"].character ~= 0 and 1 or 0),
-    }
-
     return {
         deleted_lines_count = deleted_lines_count,
         added_lines = added_lines,
@@ -85,7 +76,6 @@ function M._calculate_lines(suggestion)
         same_line = same_line,
         delete_extmark = delete_extmark,
         virt_lines_extmark = virt_lines_extmark,
-        float_win = float_win,
     }
 end
 
@@ -106,7 +96,6 @@ function M._display_next_suggestion(edits, ns_id)
     local win_id = vim.fn.win_findbuf(bufnr)[1]
     local suggestion = edits[1]
 
-    local ui = {}
     local lines = M._calculate_lines(suggestion)
 
     if lines.deleted_lines_count > 0 then
@@ -117,44 +106,13 @@ function M._display_next_suggestion(edits, ns_id)
         })
     end
     if lines.added_lines_count > 0 then
-        -- Create space for float
-        local virt_lines = {}
-        for _ = 1, lines.virt_lines_extmark.virt_lines_count do
-            table.insert(virt_lines, {
-                { "", "Normal" },
-            })
-        end
+        local text = trim_end(edits[1].text)
+        local virt_lines = require("copilot-lsp.util").hl_text_to_virt_lines(text, vim.bo[bufnr].filetype)
+
         vim.api.nvim_buf_set_extmark(bufnr, ns_id, lines.virt_lines_extmark.row, 0, {
             virt_lines = virt_lines,
         })
-
-        local preview_bufnr = vim.api.nvim_create_buf(false, true)
-        vim.api.nvim_buf_set_lines(preview_bufnr, 0, -1, false, lines.added_lines)
-        vim.bo[preview_bufnr].modifiable = false
-        vim.bo[preview_bufnr].buflisted = false
-        vim.bo[preview_bufnr].bufhidden = "wipe"
-        vim.bo[preview_bufnr].filetype = vim.bo[bufnr].filetype
-
-        local cursor = vim.api.nvim_win_get_cursor(win_id)
-        local win_width = vim.api.nvim_win_get_width(win_id)
-        local offset = vim.fn.getwininfo(win_id)[1].textoff
-        local preview_winnr = vim.api.nvim_open_win(preview_bufnr, false, {
-            relative = "cursor",
-            width = win_width - offset,
-            height = lines.float_win.height,
-            row = lines.float_win.row - cursor[1],
-            col = 0,
-            style = "minimal",
-            border = "none",
-        })
-        vim.wo[preview_winnr].number = false
-        vim.wo[preview_winnr].winhighlight = "Normal:NesAdd"
-        vim.wo[preview_winnr].winblend = 0
-
-        ui.preview_winnr = preview_winnr
     end
-
-    suggestion.ui = ui
 
     vim.b[bufnr].nes_state = suggestion
 
