@@ -68,6 +68,21 @@ local function getNesResponse(td)
                 },
             },
         },
+        ["highlight_test.c"] = {
+            edits = {
+                {
+                    command = { title = "mock", command = "mock" },
+                    range = {
+                        start = { line = 4, character = 0 },
+                        ["end"] = { line = 4, character = 30 },
+                    },
+                    textDocument = td,
+                    text = [[  printf("Goodb, %s!\n", name);]],
+                    ---@diagnostic disable-next-line: assign-type-mismatch
+                    newText = nil,
+                },
+            },
+        },
     }
     local response = responses[filename]
     assert(response, "unhandled doc")
