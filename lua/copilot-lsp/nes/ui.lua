@@ -10,6 +10,10 @@ end
 ---@param ns_id integer
 function M.clear_suggestion(bufnr, ns_id)
     bufnr = bufnr and bufnr > 0 and bufnr or vim.api.nvim_get_current_buf()
+    if vim.b[bufnr].nes_jump then
+        vim.b[bufnr].nes_jump = false
+        return
+    end
     vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
     ---@type copilotlsp.InlineEdit
     local state = vim.b[bufnr].nes_state

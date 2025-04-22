@@ -85,6 +85,7 @@ local function getNesResponse(td)
         },
     }
     local response = responses[filename]
+
     assert(response, "unhandled doc")
     return response
 end
@@ -92,6 +93,7 @@ end
 function M.server()
     local closing = false
     local srv = {}
+    local seen_files = {}
 
     function srv.request(method, params, handler)
         table.insert(M.messages, { method = method, params = params })
@@ -102,8 +104,17 @@ function M.server()
         elseif method == "shutdown" then
             handler(nil, nil)
         elseif method == "textDocument/copilotInlineEdit" then
-            local response = getNesResponse(params.textDocument)
-            handler(nil, response)
+            if not seen_files[params.textDocument.uri] then
+                seen_files[params.textDocument.uri] = true
+                local response = getNesResponse(params.textDocument)
+                handler(nil, response)
+                return
+            end
+            ---@type copilotlsp.copilotInlineEditResponse
+            local empty_response = {
+                edits = {},
+            }
+            handler(nil, empty_response)
         else
             assert(false, "Unhandled method: " .. method)
         end

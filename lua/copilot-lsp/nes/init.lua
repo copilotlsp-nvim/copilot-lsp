@@ -40,21 +40,46 @@ function M.apply_pending_nes(bufnr)
     if not state then
         return false
     end
+
+    local cursor_row, _ = unpack(vim.api.nvim_win_get_cursor(0))
+    if cursor_row - 1 ~= state.range.start.line then
+        vim.b[bufnr].nes_jump = true
+        vim.schedule(function()
+            local prev_mode = vim.api.nvim_get_mode().mode
+            if prev_mode == "i" then
+                vim.cmd("stopinsert!")
+            end
+            ---@type lsp.Location
+            local jump_loc_before = {
+                uri = state.textDocument.uri,
+                range = {
+                    start = state.range["start"],
+                    ["end"] = state.range["start"],
+                },
+            }
+            vim.lsp.util.show_document(jump_loc_before, "utf-16", { focus = true })
+            if prev_mode == "i" then
+                vim.cmd("startinsert")
+            end
+        end)
+        return true
+    end
     vim.schedule(function()
         local prev_mode = vim.api.nvim_get_mode().mode
         if prev_mode == "i" then
             vim.cmd("stopinsert!")
         end
         ---@type lsp.Location
-        local jump_loc = {
+        local jump_loc_after = {
             uri = state.textDocument.uri,
             range = {
                 start = state.range["end"],
                 ["end"] = state.range["end"],
             },
         }
-        vim.lsp.util.show_document(jump_loc, "utf-16", { focus = true })
+        vim.lsp.util.show_document(jump_loc_after, "utf-16", { focus = true })
         utils.apply_inline_edit(state)
+        vim.b[bufnr].nes_jump = false
         nes_ui.clear_suggestion(bufnr, nes_ns)
         if prev_mode == "i" then
             vim.cmd("startinsert")
