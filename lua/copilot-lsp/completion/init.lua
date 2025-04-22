@@ -1,30 +1,43 @@
 local M = {}
 
----@param _results table<integer, { err: lsp.ResponseError, result: lsp.InlineCompletionList}>
----@param _ctx lsp.HandlerContext
----@param _config table
-local function handle_inlineCompletion_response(_results, _ctx, _config)
-    -- -- Filter errors from results
-    -- local results1 = {} --- @type table<integer,lsp.InlineCompletionList>
-    --
-    -- for client_id, resp in pairs(results) do
-    --     local err, result = resp.err, resp.result
-    --     if err then
-    --         vim.lsp.log.error(err.code, err.message)
-    --     elseif result then
-    --         results1[client_id] = result
-    --     end
-    -- end
-    --
-    -- for _, result in pairs(results1) do
-    --     --TODO: Ghost text for completions
-    --     -- This is where we show the completion results
-    --     -- However, the LSP being named "copilot" is enough for blink-cmp to show the completion
-    -- end
+local function display_inline_completion()
+    local bufnr = vim.api.nvim_get_current_buf()
+    ---@type lsp.InlineCompletionList
+    local inline_completion = vim.b[bufnr].copilot_inline_completion
+    if not inline_completion or not inline_completion.items then
+        return
+    end
+
+    local selected = vim.b[bufnr].copilot_inline_completion_selected or 1
+
+    local completion = inline_completion.items[selected]
+    if not completion then
+        vim.notify("cycled all")
+        vim.b[bufnr].copilot_inline_completion_selected = 1
+        display_inline_completion()
+        return
+    end
+    vim.notify("Completion: " .. completion.insertText)
+end
+
+---@param err lsp.ResponseError?
+---@param result lsp.InlineCompletionList
+local function handle_inlineCompletion_response(err, result)
+    if err then
+        -- vim.notify(err.message)
+        return
+    end
+    vim.b[vim.api.nvim_get_current_buf()].copilot_inline_completion = result
+    display_inline_completion()
 end
 
 ---@param type lsp.InlineCompletionTriggerKind
-function M.request_inline_completion(type)
+---@param client vim.lsp.Client?
+function M.request_inline_completion(type, client)
+    if vim.b[vim.api.nvim_get_current_buf()].copilot_inline_completion then
+        display_inline_completion()
+    end
+    assert(client, "Copilot LSP client not started")
     local params = vim.tbl_deep_extend("keep", vim.lsp.util.make_position_params(0, "utf-16"), {
         textDocument = vim.lsp.util.make_text_document_params(),
         position = vim.lsp.util.make_position_params(0, "utf-16"),
@@ -37,6 +50,14 @@ function M.request_inline_completion(type)
             insertSpaces = true,
         },
     })
-    vim.lsp.buf_request_all(0, "textDocument/inlineCompletion", params, handle_inlineCompletion_response)
+    client:request("textDocument/inlineCompletion", params, handle_inlineCompletion_response, 0)
 end
+
+function M.clear_inline_completion()
+    local bufnr = vim.api.nvim_get_current_buf()
+    if vim.b[bufnr].copilot_inline_completion then
+        vim.b[bufnr].copilot_inline_completion = nil
+    end
+end
+
 return M
