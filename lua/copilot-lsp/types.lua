@@ -11,6 +11,7 @@
 
 ---@class nes.EditSuggestionUI
 ---@field preview_winnr? integer
+---@field hint_winnr? integer
 
 ---@class nes.DeleteExtmark
 --- Holds row information for delete highlight extmark.
@@ -36,3 +37,4 @@
 ---@field delete_extmark nes.DeleteExtmark
 ---@field virt_lines_extmark nes.VirtLinesExtmark
 ---@field float_win nes.FloatWin
+---@field hint_win nes.FloatWin
