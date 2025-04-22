@@ -93,7 +93,6 @@ function M._display_next_suggestion(edits, ns_id)
         return
     end
     local bufnr = vim.uri_to_bufnr(edits[1].textDocument.uri)
-    local win_id = vim.fn.win_findbuf(bufnr)[1]
     local suggestion = edits[1]
 
     local lines = M._calculate_lines(suggestion)
@@ -121,14 +120,6 @@ function M._display_next_suggestion(edits, ns_id)
         callback = function()
             if not vim.b.nes_state then
                 return true
-            end
-
-            local accepted_cursor = vim.b.nes_state.accepted_cursor
-            if accepted_cursor then
-                local cursor = vim.api.nvim_win_get_cursor(win_id)
-                if cursor[1] == accepted_cursor[1] and cursor[2] == accepted_cursor[2] then
-                    return
-                end
             end
 
             M.clear_suggestion(bufnr, ns_id)
