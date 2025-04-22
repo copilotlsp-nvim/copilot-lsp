@@ -112,7 +112,7 @@ local function sign_in(client_id, bufnr)
 end
 
 ---@param res {busy: boolean, kind: 'Normal'|'Error'|'Warning'|'Inactive', message: string}
-M["didChangeStatus"] = function(err, res, ctx)
+M[methods.didChangeStatus] = function(err, res, ctx)
     if err then
         return
     end
