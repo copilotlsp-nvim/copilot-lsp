@@ -23,8 +23,7 @@ function M.draw_completion(completion)
                 table.insert(virt_lines[i - 1], { line, "Comment" })
             end
         end
-        dd(virt_lines)
-        vim.api.nvim_buf_set_extmark(
+        ext_id = vim.api.nvim_buf_set_extmark(
             0,
             comp_ns,
             completion.range.start.line,
@@ -39,9 +38,10 @@ function M.draw_completion(completion)
             }
         )
     else
-        dd("insertText is not string string")
+        vim.notify("insertText is not a string", vim.log.levels.WARN, {
+            title = "Copilot LSP",
+        })
     end
 end
-
 
 return M
