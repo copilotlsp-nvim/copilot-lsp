@@ -9,6 +9,7 @@ T["nes"] = MiniTest.new_set({
         pre_case = function()
             child.restart({ "-u", "scripts/minimal_init.lua" })
             child.lua_func(function()
+                vim.g.copilot_nes_debounce = 450
                 vim.lsp.config("copilot", {
                     cmd = require("tests.mock_lsp").server,
                 })

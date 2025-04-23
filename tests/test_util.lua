@@ -19,7 +19,7 @@ T["debounce"]["debounces calls to a function"] = function()
             _G.called = _G.called + 1
         end
 
-        local debounced_fn = require("copilot-lsp.util").debounce(fn, 500)
+        local debounced_fn = require("copilot-lsp.util").debounce(fn, 450)
         debounced_fn()
     end)
 
@@ -46,7 +46,7 @@ T["debounce"]["function is called with final calls params"] = function()
             _G.called = a
         end
 
-        local debounced_fn = require("copilot-lsp.util").debounce(fn, 500)
+        local debounced_fn = require("copilot-lsp.util").debounce(fn, 450)
         debounced_fn(1)
         debounced_fn(2)
         debounced_fn(3)
@@ -72,7 +72,7 @@ T["debounce"]["function is only called once"] = function()
             table.insert(_G.called, a)
         end
 
-        _G.debounced_fn = require("copilot-lsp.util").debounce(fn, 250)
+        _G.debounced_fn = require("copilot-lsp.util").debounce(fn, 200)
     end)
 
     child.lua_func(function()
