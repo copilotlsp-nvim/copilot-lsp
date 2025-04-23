@@ -28,7 +28,7 @@ function M.draw_completion(completion)
             0,
             comp_ns,
             completion.range.start.line,
-            vim.fn.strdisplaywidth(existing_text) - 1,
+            vim.fn.strdisplaywidth(existing_text),
             {
                 id = ext_id,
                 virt_text_pos = "inline",
@@ -42,5 +42,6 @@ function M.draw_completion(completion)
         dd("insertText is not string string")
     end
 end
+
 
 return M
