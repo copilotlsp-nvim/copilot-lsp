@@ -130,7 +130,7 @@ T["nes"]["highlights replacement"] = function()
     vim.uv.sleep(500)
     ref(child.get_screenshot())
     child.lua_func(function()
-        require("copilot-lsp.nes").apply_pending_nes(0)
+        local _ = require("copilot-lsp.nes").apply_pending_nes() and require("copilot-lsp.nes").walk_cursor_end_edit()
     end)
     ref(child.get_screenshot())
 end
