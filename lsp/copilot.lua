@@ -36,7 +36,6 @@ return {
 
         local au = vim.api.nvim_create_augroup("copilot-language-server", { clear = true })
         --NOTE: Inline Completions
-        --TODO: We dont currently use this code path, so comment for now until a UI is built
         -- vim.api.nvim_create_autocmd("TextChangedI", {
         --     callback = function()
         --         inline_completion.request_inline_completion(2)
@@ -45,9 +44,9 @@ return {
         -- })
 
         -- TODO: make this configurable for key maps, or just expose commands to map in config
-        -- vim.keymap.set("i", "<c-i>", function()
-        --     inline_completion.request_inline_completion(1)
-        -- end)
+        vim.keymap.set("i", "<c-i>", function()
+            require("copilot-lsp.completion").request_inline_completion(1, client)
+        end)
 
         --NOTE: NES Completions
         local debounced_request = require("copilot-lsp.util").debounce(
