@@ -20,6 +20,7 @@ local function handle_nes_response(err, result)
     nes_ui._display_next_suggestion(result.edits, nes_ns)
 end
 
+--- Requests the NextEditSuggestion from the current cursor position
 ---@param copilot_lss vim.lsp.Client?
 function M.request_nes(copilot_lss)
     local pos_params = vim.lsp.util.make_position_params(0, "utf-16")
@@ -30,6 +31,9 @@ function M.request_nes(copilot_lss)
     copilot_lss:request("textDocument/copilotInlineEdit", pos_params, handle_nes_response)
 end
 
+--- Walks the cursor to the start of the edit.
+--- This function returns false if there is no edit to apply or if the cursor is already at the start position of the
+--- edit.
 ---@param bufnr? integer
 ---@return boolean --if the cursor walked
 function M.walk_cursor_start_edit(bufnr)
@@ -57,6 +61,9 @@ function M.walk_cursor_start_edit(bufnr)
     end
 end
 
+--- Walks the cursor to the end of the edit.
+--- This function returns false if there is no edit to apply or if the cursor is already at the end position of the
+--- edit
 ---@param bufnr? integer
 ---@return boolean --if the cursor walked
 function M.walk_cursor_end_edit(bufnr)
@@ -82,6 +89,8 @@ function M.walk_cursor_end_edit(bufnr)
     return true
 end
 
+--- This function applies the pending nes edit to the current buffer and then clears the marks for the pending
+--- suggestion
 ---@param bufnr? integer
 ---@return boolean --if the nes was applied
 function M.apply_pending_nes(bufnr)
