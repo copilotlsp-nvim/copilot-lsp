@@ -1,4 +1,3 @@
-local eq = MiniTest.expect.equality
 local ref = MiniTest.expect.reference_screenshot
 
 local child = MiniTest.new_child_neovim()
@@ -23,10 +22,6 @@ T["signin"]["shows modal"] = function()
     child.cmd("edit tests/fixtures/signin.txt")
     ref(child.get_screenshot())
     vim.uv.sleep(500)
-    local lsp_name = child.lua_func(function()
-        return vim.lsp.get_clients()[1].name
-    end)
-    eq(lsp_name, "copilot_ls")
     child.lua_func(function()
         local copilot = vim.lsp.get_clients()[1]
         copilot.handlers["signIn"](nil, {

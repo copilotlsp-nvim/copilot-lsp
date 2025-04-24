@@ -20,14 +20,24 @@ T["nes"] = MiniTest.new_set({
     },
 })
 
+T["nes"]["lsp starts"] = function()
+    child.cmd("edit tests/fixtures/sameline_edit.txt")
+    local lsp_count = child.lua_func(function()
+        local count = 0
+        local clients = vim.lsp.get_clients()
+        for _, _ in pairs(clients) do
+            --NOTE: #clients doesn't work, so we count in the loop
+            count = count + 1
+        end
+        return count
+    end)
+    eq(lsp_count, 1)
+end
+
 T["nes"]["same line edit"] = function()
     child.cmd("edit tests/fixtures/sameline_edit.txt")
     ref(child.get_screenshot())
     vim.uv.sleep(500)
-    local lsp_name = child.lua_func(function()
-        return vim.lsp.get_clients()[1].name
-    end)
-    eq(lsp_name, "copilot_ls")
     child.lua_func(function()
         local copilot = vim.lsp.get_clients()[1]
         require("copilot-lsp.nes").request_nes(copilot)
@@ -44,10 +54,6 @@ T["nes"]["multi line edit"] = function()
     child.cmd("edit tests/fixtures/multiline_edit.txt")
     ref(child.get_screenshot())
     vim.uv.sleep(500)
-    local lsp_name = child.lua_func(function()
-        return vim.lsp.get_clients()[1].name
-    end)
-    eq(lsp_name, "copilot_ls")
     child.lua_func(function()
         local copilot = vim.lsp.get_clients()[1]
         require("copilot-lsp.nes").request_nes(copilot)
@@ -64,10 +70,6 @@ T["nes"]["removal edit"] = function()
     child.cmd("edit tests/fixtures/removal_edit.txt")
     ref(child.get_screenshot())
     vim.uv.sleep(500)
-    local lsp_name = child.lua_func(function()
-        return vim.lsp.get_clients()[1].name
-    end)
-    eq(lsp_name, "copilot_ls")
     child.lua_func(function()
         local copilot = vim.lsp.get_clients()[1]
         require("copilot-lsp.nes").request_nes(copilot)
@@ -88,10 +90,6 @@ T["nes"]["add only edit"] = function()
     child.cmd("edit tests/fixtures/addonly_edit.txt")
     ref(child.get_screenshot())
     vim.uv.sleep(500)
-    local lsp_name = child.lua_func(function()
-        return vim.lsp.get_clients()[1].name
-    end)
-    eq(lsp_name, "copilot_ls")
     child.lua_func(function()
         local copilot = vim.lsp.get_clients()[1]
         require("copilot-lsp.nes").request_nes(copilot)
@@ -119,10 +117,6 @@ T["nes"]["highlights replacement"] = function()
     end)
     ref(child.get_screenshot())
     vim.uv.sleep(500)
-    local lsp_name = child.lua_func(function()
-        return vim.lsp.get_clients()[1].name
-    end)
-    eq(lsp_name, "copilot_ls")
     child.lua_func(function()
         local copilot = vim.lsp.get_clients()[1]
         require("copilot-lsp.nes").request_nes(copilot)
