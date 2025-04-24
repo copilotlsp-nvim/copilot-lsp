@@ -19,7 +19,7 @@ local function handle_inlineCompletion_response(_results, _ctx, _config)
     -- for _, result in pairs(results1) do
     --     --TODO: Ghost text for completions
     --     -- This is where we show the completion results
-    --     -- However, the LSP being named "copilot" is enough for blink-cmp to show the completion
+    --     -- However, the LSP being named "copilot_ls" is enough for blink-cmp to show the completion
     -- end
 end
 

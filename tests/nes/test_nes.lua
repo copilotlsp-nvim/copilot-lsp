@@ -10,10 +10,10 @@ T["nes"] = MiniTest.new_set({
             child.restart({ "-u", "scripts/minimal_init.lua" })
             child.lua_func(function()
                 vim.g.copilot_nes_debounce = 450
-                vim.lsp.config("copilot", {
+                vim.lsp.config("copilot_ls", {
                     cmd = require("tests.mock_lsp").server,
                 })
-                vim.lsp.enable("copilot")
+                vim.lsp.enable("copilot_ls")
             end)
         end,
         post_once = child.stop,
@@ -27,7 +27,7 @@ T["nes"]["same line edit"] = function()
     local lsp_name = child.lua_func(function()
         return vim.lsp.get_clients()[1].name
     end)
-    eq(lsp_name, "copilot")
+    eq(lsp_name, "copilot_ls")
     child.lua_func(function()
         local copilot = vim.lsp.get_clients()[1]
         require("copilot-lsp.nes").request_nes(copilot)
@@ -47,7 +47,7 @@ T["nes"]["multi line edit"] = function()
     local lsp_name = child.lua_func(function()
         return vim.lsp.get_clients()[1].name
     end)
-    eq(lsp_name, "copilot")
+    eq(lsp_name, "copilot_ls")
     child.lua_func(function()
         local copilot = vim.lsp.get_clients()[1]
         require("copilot-lsp.nes").request_nes(copilot)
@@ -67,7 +67,7 @@ T["nes"]["removal edit"] = function()
     local lsp_name = child.lua_func(function()
         return vim.lsp.get_clients()[1].name
     end)
-    eq(lsp_name, "copilot")
+    eq(lsp_name, "copilot_ls")
     child.lua_func(function()
         local copilot = vim.lsp.get_clients()[1]
         require("copilot-lsp.nes").request_nes(copilot)
@@ -91,7 +91,7 @@ T["nes"]["add only edit"] = function()
     local lsp_name = child.lua_func(function()
         return vim.lsp.get_clients()[1].name
     end)
-    eq(lsp_name, "copilot")
+    eq(lsp_name, "copilot_ls")
     child.lua_func(function()
         local copilot = vim.lsp.get_clients()[1]
         require("copilot-lsp.nes").request_nes(copilot)
@@ -122,7 +122,7 @@ T["nes"]["highlights replacement"] = function()
     local lsp_name = child.lua_func(function()
         return vim.lsp.get_clients()[1].name
     end)
-    eq(lsp_name, "copilot")
+    eq(lsp_name, "copilot_ls")
     child.lua_func(function()
         local copilot = vim.lsp.get_clients()[1]
         require("copilot-lsp.nes").request_nes(copilot)

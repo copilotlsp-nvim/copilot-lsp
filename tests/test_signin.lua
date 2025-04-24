@@ -9,10 +9,10 @@ T["signin"] = MiniTest.new_set({
         pre_case = function()
             child.restart({ "-u", "scripts/minimal_init.lua" })
             child.lua_func(function()
-                vim.lsp.config("copilot", {
+                vim.lsp.config("copilot_ls", {
                     cmd = require("tests.mock_lsp").server,
                 })
-                vim.lsp.enable("copilot")
+                vim.lsp.enable("copilot_ls")
             end)
         end,
         post_once = child.stop,
@@ -26,7 +26,7 @@ T["signin"]["shows modal"] = function()
     local lsp_name = child.lua_func(function()
         return vim.lsp.get_clients()[1].name
     end)
-    eq(lsp_name, "copilot")
+    eq(lsp_name, "copilot_ls")
     child.lua_func(function()
         local copilot = vim.lsp.get_clients()[1]
         copilot.handlers["signIn"](nil, {

@@ -3,7 +3,7 @@ local version = vim.version()
 ---@type vim.lsp.Config
 return {
     --NOTE: This name means that existing blink completion works
-    name = "copilot",
+    name = "copilot_ls",
     cmd = {
         "copilot-language-server",
         "--stdio",
