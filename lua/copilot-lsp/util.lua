@@ -177,7 +177,7 @@ function M.hl_text_to_virt_lines(text, lang)
             table.insert(curr_virt_line, hl_chunk(chunk_text, cap.hl))
             table.insert(virt_lines, curr_virt_line)
 
-            for i in curr_row + 1, cap.end_row - 1 do
+            for i = curr_row + 1, cap.end_row - 1 do
                 local line_text = lines[i + 1]
                 table.insert(virt_lines, { hl_chunk(line_text, cap.hl) })
             end
