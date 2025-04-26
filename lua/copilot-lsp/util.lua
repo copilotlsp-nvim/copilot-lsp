@@ -142,7 +142,7 @@ function M.hl_text_to_virt_lines(text, lang)
 
     vim.iter(captures):each(function(cap)
         -- skip if the capture is before the current position
-        if cap.end_row < curr_row or (cap.end_row == curr_row and cap.end_col < curr_col) then
+        if cap.end_row < curr_row or (cap.end_row == curr_row and cap.end_col <= curr_col) then
             return
         end
 
