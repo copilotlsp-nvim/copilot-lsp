@@ -31,7 +31,7 @@ end
 
 ---@private
 ---@param suggestion copilotlsp.InlineEdit
----@return nes.LineCalculationResult
+---@return copilotlsp.nes.LineCalculationResult
 function M._calculate_lines(suggestion)
     local deleted_lines_count = suggestion.range["end"].line - suggestion.range.start.line
     local added_lines = vim.split(trim_end(suggestion.newText), "\n")
@@ -54,7 +54,7 @@ function M._calculate_lines(suggestion)
     -- end
 
     -- Calculate positions for delete highlight extmark
-    ---@type nes.DeleteExtmark
+    ---@type copilotlsp.nes.DeleteExtmark
     local delete_extmark = {
         row = suggestion.range.start.line,
         end_row = (
@@ -64,7 +64,7 @@ function M._calculate_lines(suggestion)
     }
 
     -- Calculate positions for virtual lines extmark
-    ---@type nes.VirtLinesExtmark
+    ---@type copilotlsp.nes.AddExtmark
     local virt_lines_extmark = {
         row = (
             suggestion.range["end"].character ~= 0 and suggestion.range["end"].line
@@ -104,7 +104,7 @@ function M._display_next_suggestion(edits, ns_id)
     if lines.deleted_lines_count > 0 then
         -- Deleted range red highlight
         vim.api.nvim_buf_set_extmark(bufnr, ns_id, lines.delete_extmark.row, 0, {
-            hl_group = "NesDelete",
+            hl_group = "CopilotLspNesDelete",
             end_row = lines.delete_extmark.end_row,
         })
     end

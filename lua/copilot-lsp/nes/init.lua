@@ -4,7 +4,7 @@ local utils = require("copilot-lsp.util")
 
 local M = {}
 
-local nes_ns = vim.api.nvim_create_namespace("copilot-nes")
+local nes_ns = vim.api.nvim_create_namespace("copilotlsp.nes")
 
 ---@param err lsp.ResponseError?
 ---@param result copilotlsp.copilotInlineEditResponse

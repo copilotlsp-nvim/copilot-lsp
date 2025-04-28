@@ -4,7 +4,7 @@ local nes_ui = require("copilot-lsp.nes.ui")
 local T = MiniTest.new_set()
 
 T["diff placement calculations"] = MiniTest.new_set({
-    ---@type [ copilotlsp.InlineEdit, nes.LineCalculationResult][]
+    ---@type [ copilotlsp.InlineEdit, copilotlsp.nes.LineCalculationResult][]
     parametrize = {
         {
             --- Same line edit
@@ -149,7 +149,7 @@ T["diff placement calculations"] = MiniTest.new_set({
 
 T["diff placement calculations"]["calculates locations"] =
     ---@param edit copilotlsp.InlineEdit
-    ---@param result nes.LineCalculationResult
+    ---@param result copilotlsp.nes.LineCalculationResult
     function(edit, result)
         local placement = nes_ui._calculate_lines(edit)
         eq(result, placement)

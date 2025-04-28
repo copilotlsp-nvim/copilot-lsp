@@ -109,7 +109,7 @@ end
 function M.hl_text_to_virt_lines(text, lang)
     local lines = vim.split(text, "\n")
     local normal_hl = "Normal"
-    local bg_hl = "NesAdd"
+    local bg_hl = "CopilotLspNesAdd"
 
     local function hl_chunk(chunk, hl)
         if not hl then
