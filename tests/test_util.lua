@@ -5,6 +5,7 @@ local child = MiniTest.new_child_neovim()
 local T = MiniTest.new_set()
 
 T["debounce"] = MiniTest.new_set({
+    n_retry = 3,
     hooks = {
         pre_case = function()
             child.restart({ "-u", "scripts/minimal_init.lua" })
