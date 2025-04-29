@@ -26,6 +26,6 @@
 ---@field deleted_lines_count number
 ---@field added_lines string[]
 ---@field added_lines_count number
----@field same_line number
+---@field same_line boolean
 ---@field delete_extmark copilotlsp.nes.DeleteExtmark
 ---@field virt_lines_extmark copilotlsp.nes.AddExtmark

@@ -35,7 +35,7 @@ T["diff placement calculations"] = MiniTest.new_set({
                     row = 0,
                 },
                 deleted_lines_count = 1,
-                same_line = 1,
+                same_line = true,
                 virt_lines_extmark = {
                     row = 0,
                     virt_lines_count = 1,
@@ -71,7 +71,7 @@ T["diff placement calculations"] = MiniTest.new_set({
                     row = 0,
                 },
                 deleted_lines_count = 1,
-                same_line = 0,
+                same_line = false,
                 virt_lines_extmark = {
                     row = 0,
                     virt_lines_count = 0,
@@ -107,7 +107,7 @@ T["diff placement calculations"] = MiniTest.new_set({
                     row = 0,
                 },
                 deleted_lines_count = 1,
-                same_line = 0,
+                same_line = false,
                 virt_lines_extmark = {
                     row = 0,
                     virt_lines_count = 2,
@@ -137,7 +137,7 @@ T["diff placement calculations"] = MiniTest.new_set({
                     end_row = 2,
                     row = 2,
                 },
-                same_line = 1,
+                same_line = true,
                 virt_lines_extmark = {
                     row = 1,
                     virt_lines_count = 1,
