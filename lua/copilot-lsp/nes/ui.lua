@@ -83,31 +83,10 @@ function M._calculate_lines(suggestion)
     }
 end
 
----@private
----@class TextDeletion
----@field range lsp.Range
-
----@private
----@class InlineInsertion
----@field text string
----@field line integer
----@field character integer
-
----@private
----@class TextInsertion
----@field text string
----@field line integer insert lines at this line
-
----@private
----@class InlineEditPreview
----@field deletions? TextDeletion[]
----@field inline_insertion? InlineInsertion
----@field lines_insertion? TextInsertion
-
 ---@param bufnr integer
 ---@param edit lsp.TextEdit
----@return InlineEditPreview
-function M.preview_inline_edit(bufnr, edit)
+---@return copilotlsp.nes.InlineEditPreview
+function M.caculate_preview(bufnr, edit)
     local text = edit.newText
     local range = edit.range
     local start_line = range.start.line
@@ -134,10 +113,8 @@ function M.preview_inline_edit(bufnr, edit)
     if is_same_line and is_deletion then
         -- inline deletion
         return {
-            deletions = {
-                {
-                    range = edit.range,
-                },
+            deletion = {
+                range = edit.range,
             },
         }
     end
@@ -157,7 +134,7 @@ function M.preview_inline_edit(bufnr, edit)
         if start_char == #old_lines[1] and new_lines[1] == "" then
             -- insert lines after the start line
             return {
-                line_insertion = {
+                lines_insertion = {
                     text = table.concat(vim.list_slice(new_lines, 2), "\n"),
                     line = start_line,
                 },
@@ -169,7 +146,7 @@ function M.preview_inline_edit(bufnr, edit)
             return {
                 lines_insertion = {
                     text = table.concat(vim.list_slice(new_lines, 1, num_new_lines - 1), "\n"),
-                    line = start_line,
+                    line = math.max(start_line - 1, 0),
                 },
             }
         end
@@ -184,12 +161,10 @@ function M.preview_inline_edit(bufnr, edit)
     local insertion = table.concat(new_lines_extend, "\n")
 
     return {
-        deletions = {
-            {
-                range = {
-                    start = { line = start_line, character = 0 },
-                    ["end"] = { line = end_line, character = #old_lines[num_old_lines] },
-                },
+        deletion = {
+            range = {
+                start = { line = start_line, character = 0 },
+                ["end"] = { line = end_line, character = #old_lines[num_old_lines] - 1 },
             },
         },
         lines_insertion = {
@@ -199,11 +174,44 @@ function M.preview_inline_edit(bufnr, edit)
     }
 end
 
+---@param bufnr integer
+---@param ns_id integer
+---@param preview copilotlsp.nes.InlineEditPreview
+function M.display_inline_edit_preview(bufnr, ns_id, preview)
+    if preview.deletion then
+        local range = preview.deletion.range
+        vim.api.nvim_buf_set_extmark(bufnr, ns_id, range.start.line, range.start.character, {
+            hl_group = "CopilotLspNesDelete",
+            end_row = range["end"].line,
+            end_col = range["end"].character + 1,
+        })
+    end
+
+    local inline_insertion = preview.inline_insertion
+    if inline_insertion then
+        local virt_lines =
+            require("copilot-lsp.util").hl_text_to_virt_lines(inline_insertion.text, vim.bo[bufnr].filetype)
+        vim.api.nvim_buf_set_extmark(bufnr, ns_id, inline_insertion.line, inline_insertion.character, {
+            virt_text = virt_lines[1],
+            virt_text_pos = "inline",
+        })
+    end
+
+    local lines_insertion = preview.lines_insertion
+    if lines_insertion then
+        local virt_lines =
+            require("copilot-lsp.util").hl_text_to_virt_lines(lines_insertion.text, vim.bo[bufnr].filetype)
+        vim.api.nvim_buf_set_extmark(bufnr, ns_id, lines_insertion.line, 0, {
+            virt_lines = virt_lines,
+        })
+    end
+end
+
 ---@private
 ---@param edits copilotlsp.InlineEdit[]
 ---@param ns_id integer
 function M._display_next_suggestion(edits, ns_id)
-    local bufnr = vim.api.nvim_get_current_buf()
+    local bufnr = vim.uri_to_bufnr(edits[1].textDocument.uri)
     local state = vim.b[bufnr].nes_state
     if state then
         M.clear_suggestion(vim.api.nvim_get_current_buf(), ns_id)
@@ -213,61 +221,10 @@ function M._display_next_suggestion(edits, ns_id)
         -- vim.notify("No suggestion available", vim.log.levels.INFO)
         return
     end
-    local bufnr = vim.uri_to_bufnr(edits[1].textDocument.uri)
     local suggestion = edits[1]
 
-    local lines = M._calculate_lines(suggestion)
-
-    local line_replacement = false
-    -- check if the edit is a inline insert or delete but not a whole line replacement
-    if lines.same_line then
-        local row = suggestion.range.start.line
-        local start_col = suggestion.range.start.character
-        local end_col = suggestion.range["end"].character
-        local line_text = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false)[1]
-        if start_col == 0 and end_col == #line_text then
-            line_replacement = true
-        end
-    end
-
-    if lines.same_line and not line_replacement then
-        local row = suggestion.range.start.line
-        local start_col = suggestion.range.start.character
-        local end_col = suggestion.range["end"].character
-
-        -- inline edit
-        if start_col < end_col then
-            vim.api.nvim_buf_set_extmark(bufnr, ns_id, row, start_col, {
-                hl_group = "CopilotLspNesDelete",
-                end_col = end_col,
-            })
-        end
-        if suggestion.text ~= "" then
-            local virt_lines =
-                require("copilot-lsp.util").hl_text_to_virt_lines(suggestion.text, vim.bo[bufnr].filetype)
-            local virt_text = virt_lines[1]
-            vim.api.nvim_buf_set_extmark(bufnr, ns_id, row, end_col, {
-                virt_text = virt_text,
-                virt_text_pos = "inline",
-            })
-        end
-    else
-        if lines.deleted_lines_count > 0 then
-            -- Deleted range red highlight
-            vim.api.nvim_buf_set_extmark(bufnr, ns_id, lines.delete_extmark.row, 0, {
-                hl_group = "CopilotLspNesDelete",
-                end_row = lines.delete_extmark.end_row,
-            })
-        end
-        if lines.added_lines_count > 0 then
-            local text = trim_end(edits[1].text)
-            local virt_lines = require("copilot-lsp.util").hl_text_to_virt_lines(text, vim.bo[bufnr].filetype)
-
-            vim.api.nvim_buf_set_extmark(bufnr, ns_id, lines.virt_lines_extmark.row, 0, {
-                virt_lines = virt_lines,
-            })
-        end
-    end
+    local preview = M.caculate_preview(bufnr, suggestion)
+    M.display_inline_edit_preview(bufnr, ns_id, preview)
 
     vim.b[bufnr].nes_state = suggestion
 

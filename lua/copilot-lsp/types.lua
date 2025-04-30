@@ -1,8 +1,6 @@
----@class copilotlsp.InlineEdit
+---@class copilotlsp.InlineEdit : lsp.TextEdit
 ---@field command lsp.Command
----@field range lsp.Range
 ---@field text string
----@field newText string
 ---@field textDocument lsp.VersionedTextDocumentIdentifier
 
 ---@class copilotlsp.copilotInlineEditResponse
@@ -29,3 +27,20 @@
 ---@field same_line boolean
 ---@field delete_extmark copilotlsp.nes.DeleteExtmark
 ---@field virt_lines_extmark copilotlsp.nes.AddExtmark
+
+---@class copilotlsp.nes.TextDeletion
+---@field range lsp.Range
+
+---@class copilotlsp.nes.InlineInsertion
+---@field text string
+---@field line integer
+---@field character integer
+
+---@class copilotlsp.nes.TextInsertion
+---@field text string
+---@field line integer insert lines at this line
+
+---@class copilotlsp.nes.InlineEditPreview
+---@field deletion? copilotlsp.nes.TextDeletion
+---@field inline_insertion? copilotlsp.nes.InlineInsertion
+---@field lines_insertion? copilotlsp.nes.TextInsertion
