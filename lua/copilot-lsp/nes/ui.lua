@@ -84,6 +84,122 @@ function M._calculate_lines(suggestion)
 end
 
 ---@private
+---@class TextDeletion
+---@field range lsp.Range
+
+---@private
+---@class InlineInsertion
+---@field text string
+---@field line integer
+---@field character integer
+
+---@private
+---@class TextInsertion
+---@field text string
+---@field line integer insert lines at this line
+
+---@private
+---@class InlineEditPreview
+---@field deletions? TextDeletion[]
+---@field inline_insertion? InlineInsertion
+---@field lines_insertion? TextInsertion
+
+---@param bufnr integer
+---@param edit lsp.TextEdit
+---@return InlineEditPreview
+function M.preview_inline_edit(bufnr, edit)
+    local text = edit.newText
+    local range = edit.range
+    local start_line = range.start.line
+    local start_char = range.start.character
+    local end_line = range["end"].line
+    local end_char = range["end"].character
+
+    -- Split text by newline. Use plain=true to handle trailing newline correctly.
+    local new_lines = vim.split(text, "\n", { plain = true })
+    local num_new_lines = #new_lines
+
+    local old_lines = vim.api.nvim_buf_get_lines(bufnr, start_line, end_line + 1, false)
+    local num_old_lines = #old_lines
+
+    local is_same_line = start_line == end_line
+    local is_deletion = text == ""
+    local is_insertion = is_same_line and start_char == end_char
+
+    if is_deletion and is_insertion then
+        -- no-op
+        return {}
+    end
+
+    if is_same_line and is_deletion then
+        -- inline deletion
+        return {
+            deletions = {
+                {
+                    range = edit.range,
+                },
+            },
+        }
+    end
+
+    if is_insertion and num_new_lines == 1 and text ~= "" then
+        -- inline insertion
+        return {
+            inline_insertion = {
+                text = text,
+                line = start_line,
+                character = start_char,
+            },
+        }
+    end
+
+    if is_insertion and num_new_lines > 1 then
+        if start_char == #old_lines[1] and new_lines[1] == "" then
+            -- insert lines after the start line
+            return {
+                line_insertion = {
+                    text = table.concat(vim.list_slice(new_lines, 2), "\n"),
+                    line = start_line,
+                },
+            }
+        end
+
+        if end_char == 0 and new_lines[num_new_lines] == "" then
+            -- insert lines before the end line
+            return {
+                lines_insertion = {
+                    text = table.concat(vim.list_slice(new_lines, 1, num_new_lines - 1), "\n"),
+                    line = start_line,
+                },
+            }
+        end
+    end
+
+    -- insert lines in the middle
+    local prefix = old_lines[1]:sub(1, start_char)
+    local suffix = old_lines[num_old_lines]:sub(end_char + 1)
+    local new_lines_extend = vim.deepcopy(new_lines)
+    new_lines_extend[1] = prefix .. new_lines_extend[1]
+    new_lines_extend[num_new_lines] = new_lines_extend[num_new_lines] .. suffix
+    local insertion = table.concat(new_lines_extend, "\n")
+
+    return {
+        deletions = {
+            {
+                range = {
+                    start = { line = start_line, character = 0 },
+                    ["end"] = { line = end_line, character = #old_lines[num_old_lines] },
+                },
+            },
+        },
+        lines_insertion = {
+            text = insertion,
+            line = end_line,
+        },
+    }
+end
+
+---@private
 ---@param edits copilotlsp.InlineEdit[]
 ---@param ns_id integer
 function M._display_next_suggestion(edits, ns_id)
@@ -103,11 +219,11 @@ function M._display_next_suggestion(edits, ns_id)
     local lines = M._calculate_lines(suggestion)
 
     local line_replacement = false
+    -- check if the edit is a inline insert or delete but not a whole line replacement
     if lines.same_line then
         local row = suggestion.range.start.line
         local start_col = suggestion.range.start.character
         local end_col = suggestion.range["end"].character
-
         local line_text = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false)[1]
         if start_col == 0 and end_col == #line_text then
             line_replacement = true

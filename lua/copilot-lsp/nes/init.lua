@@ -21,10 +21,13 @@ local function handle_nes_response(err, result)
 end
 
 --- Requests the NextEditSuggestion from the current cursor position
----@param copilot_lss vim.lsp.Client?
+---@param copilot_lss? vim.lsp.Client|string
 function M.request_nes(copilot_lss)
     local pos_params = vim.lsp.util.make_position_params(0, "utf-16")
     local version = vim.lsp.util.buf_versions[vim.api.nvim_get_current_buf()]
+    if type(copilot_lss) == "string" then
+        copilot_lss = vim.lsp.get_clients({ name = copilot_lss })[1]
+    end
     assert(copilot_lss, errs.ErrNotStarted)
     ---@diagnostic disable-next-line: inject-field
     pos_params.textDocument.version = version
