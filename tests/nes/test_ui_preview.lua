@@ -236,14 +236,14 @@ do
 
             child.g.inline_edit = case.edit
             local preview = child.lua_func(function()
-                return require("copilot-lsp.nes.ui").caculate_preview(0, vim.g.inline_edit)
+                return require("copilot-lsp.nes.ui")._calculate_preview(0, vim.g.inline_edit)
             end)
             eq(preview, case.preview)
 
             child.g.inline_preview = preview
             child.lua_func(function()
                 local ns_id = vim.api.nvim_create_namespace("nes")
-                require("copilot-lsp.nes.ui").display_inline_edit_preview(0, ns_id, vim.g.inline_preview)
+                require("copilot-lsp.nes.ui")._display_preview(0, ns_id, vim.g.inline_preview)
             end)
             ref(child.get_screenshot())
 

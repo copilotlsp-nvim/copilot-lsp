@@ -14,79 +14,21 @@ function M.clear_suggestion(bufnr, ns_id)
         vim.b[bufnr].nes_jump = false
         return
     end
-    vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
+    _dismiss_suggestion(bufnr, ns_id)
     ---@type copilotlsp.InlineEdit
     local state = vim.b[bufnr].nes_state
     if not state then
         return
     end
 
-    _dismiss_suggestion(bufnr, ns_id)
     vim.b[bufnr].nes_state = nil
 end
 
-local function trim_end(s)
-    return s:gsub("%s+$", "")
-end
-
 ---@private
----@param suggestion copilotlsp.InlineEdit
----@return copilotlsp.nes.LineCalculationResult
-function M._calculate_lines(suggestion)
-    local deleted_lines_count = suggestion.range["end"].line - suggestion.range.start.line
-    local added_lines = vim.split(trim_end(suggestion.newText), "\n")
-    local added_lines_count = suggestion.newText == "" and 0 or #added_lines
-    local same_line = false
-
-    if deleted_lines_count == 0 and added_lines_count == 1 then
-        ---changing within line
-        deleted_lines_count = 1
-        same_line = true
-    end
-
-    -- if
-    --     suggestion.range.start.line == suggestion.range["end"].line
-    --     and suggestion.range.start.character == suggestion.range["end"].character
-    -- then
-    --     --add only
-    --     TODO: Do we need to position specifically for add only?
-    --     UI tests seem to say no
-    -- end
-
-    -- Calculate positions for delete highlight extmark
-    ---@type copilotlsp.nes.DeleteExtmark
-    local delete_extmark = {
-        row = suggestion.range.start.line,
-        end_row = (
-            suggestion.range["end"].character ~= 0 and suggestion.range["end"].line + 1
-            or suggestion.range["end"].line
-        ),
-    }
-
-    -- Calculate positions for virtual lines extmark
-    ---@type copilotlsp.nes.AddExtmark
-    local virt_lines_extmark = {
-        row = (
-            suggestion.range["end"].character ~= 0 and suggestion.range["end"].line
-            or suggestion.range["end"].line - 1
-        ),
-        virt_lines_count = added_lines_count,
-    }
-
-    return {
-        deleted_lines_count = deleted_lines_count,
-        added_lines = added_lines,
-        added_lines_count = added_lines_count,
-        same_line = same_line,
-        delete_extmark = delete_extmark,
-        virt_lines_extmark = virt_lines_extmark,
-    }
-end
-
 ---@param bufnr integer
 ---@param edit lsp.TextEdit
 ---@return copilotlsp.nes.InlineEditPreview
-function M.caculate_preview(bufnr, edit)
+function M._calculate_preview(bufnr, edit)
     local text = edit.newText
     local range = edit.range
     local start_line = range.start.line
@@ -175,10 +117,11 @@ function M.caculate_preview(bufnr, edit)
     }
 end
 
+---@private
 ---@param bufnr integer
 ---@param ns_id integer
 ---@param preview copilotlsp.nes.InlineEditPreview
-function M.display_inline_edit_preview(bufnr, ns_id, preview)
+function M._display_preview(bufnr, ns_id, preview)
     if preview.deletion then
         local range = preview.deletion.range
         vim.api.nvim_buf_set_extmark(bufnr, ns_id, range.start.line, range.start.character, {
@@ -222,8 +165,8 @@ function M._display_next_suggestion(bufnr, ns_id, edits)
 
     local suggestion = edits[1]
 
-    local preview = M.caculate_preview(bufnr, suggestion)
-    M.display_inline_edit_preview(bufnr, ns_id, preview)
+    local preview = M._calculate_preview(bufnr, suggestion)
+    M._display_preview(bufnr, ns_id, preview)
 
     vim.b[bufnr].nes_state = suggestion
 
