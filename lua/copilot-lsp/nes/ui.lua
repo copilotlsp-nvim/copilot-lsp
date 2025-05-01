@@ -103,6 +103,7 @@ function M.caculate_preview(bufnr, edit)
 
     local is_same_line = start_line == end_line
     local is_deletion = text == ""
+    local lines_edit = is_same_line or (start_char == 0 and end_char == 0)
     local is_insertion = is_same_line and start_char == end_char
 
     if is_deletion and is_insertion then
@@ -110,8 +111,7 @@ function M.caculate_preview(bufnr, edit)
         return {}
     end
 
-    if is_same_line and is_deletion then
-        -- inline deletion
+    if is_deletion and lines_edit then
         return {
             deletion = {
                 range = edit.range,
@@ -165,7 +165,7 @@ function M.caculate_preview(bufnr, edit)
         deletion = {
             range = {
                 start = { line = start_line, character = 0 },
-                ["end"] = { line = end_line, character = #old_lines[num_old_lines] - 1 },
+                ["end"] = { line = end_line, character = #old_lines[num_old_lines] },
             },
         },
         lines_insertion = {
@@ -184,7 +184,7 @@ function M.display_inline_edit_preview(bufnr, ns_id, preview)
         vim.api.nvim_buf_set_extmark(bufnr, ns_id, range.start.line, range.start.character, {
             hl_group = "CopilotLspNesDelete",
             end_row = range["end"].line,
-            end_col = range["end"].character + 1,
+            end_col = range["end"].character,
         })
     end
 
@@ -210,19 +210,16 @@ function M.display_inline_edit_preview(bufnr, ns_id, preview)
 end
 
 ---@private
----@param edits copilotlsp.InlineEdit[]
+---@param bufnr integer
 ---@param ns_id integer
-function M._display_next_suggestion(edits, ns_id)
+---@param edits copilotlsp.InlineEdit[]
+function M._display_next_suggestion(bufnr, ns_id, edits)
+    M.clear_suggestion(bufnr, ns_id)
     if not edits or #edits == 0 then
         -- vim.notify("No suggestion available", vim.log.levels.INFO)
         return
     end
 
-    local bufnr = vim.uri_to_bufnr(edits[1].textDocument.uri)
-    local state = vim.b[bufnr].nes_state
-    if state then
-        M.clear_suggestion(bufnr, ns_id)
-    end
     local suggestion = edits[1]
 
     local preview = M.caculate_preview(bufnr, suggestion)

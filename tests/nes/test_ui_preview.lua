@@ -136,7 +136,7 @@ local cases = {
             deletion = {
                 range = {
                     ["end"] = {
-                        character = 6,
+                        character = 7,
                         line = 1,
                     },
                     start = {
@@ -171,7 +171,7 @@ local cases = {
             deletion = {
                 range = {
                     ["end"] = {
-                        character = 6,
+                        character = 7,
                         line = 1,
                     },
                     start = {
@@ -186,6 +186,37 @@ local cases = {
             },
         },
         final = "123456\nXXXX\nhijklmn",
+    },
+    ["delete lines"] = {
+        content = "123456\nabcdefg\nhijklmn",
+        edit = {
+            range = {
+                start = {
+                    line = 0,
+                    character = 0,
+                },
+                ["end"] = {
+                    line = 2,
+                    character = 0,
+                },
+            },
+            newText = "",
+        },
+        preview = {
+            deletion = {
+                range = {
+                    ["end"] = {
+                        character = 0,
+                        line = 2,
+                    },
+                    start = {
+                        character = 0,
+                        line = 0,
+                    },
+                },
+            },
+        },
+        final = "hijklmn",
     },
 }
 

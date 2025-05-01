@@ -8,7 +8,8 @@ local nes_ns = vim.api.nvim_create_namespace("copilotlsp.nes")
 
 ---@param err lsp.ResponseError?
 ---@param result copilotlsp.copilotInlineEditResponse
-local function handle_nes_response(err, result)
+---@param ctx lsp.HandlerContext
+local function handle_nes_response(err, result, ctx)
     if err then
         -- vim.notify(err.message)
         return
@@ -17,7 +18,7 @@ local function handle_nes_response(err, result)
         --- Convert to textEdit fields
         edit.newText = edit.text
     end
-    nes_ui._display_next_suggestion(result.edits, nes_ns)
+    nes_ui._display_next_suggestion(ctx.bufnr, nes_ns, result.edits)
 end
 
 --- Requests the NextEditSuggestion from the current cursor position
