@@ -146,7 +146,8 @@ function M.caculate_preview(bufnr, edit)
             return {
                 lines_insertion = {
                     text = table.concat(vim.list_slice(new_lines, 1, num_new_lines - 1), "\n"),
-                    line = math.max(start_line - 1, 0),
+                    line = start_line,
+                    above = true,
                 },
             }
         end
@@ -203,6 +204,7 @@ function M.display_inline_edit_preview(bufnr, ns_id, preview)
             require("copilot-lsp.util").hl_text_to_virt_lines(lines_insertion.text, vim.bo[bufnr].filetype)
         vim.api.nvim_buf_set_extmark(bufnr, ns_id, lines_insertion.line, 0, {
             virt_lines = virt_lines,
+            virt_lines_above = lines_insertion.above,
         })
     end
 end
@@ -211,15 +213,15 @@ end
 ---@param edits copilotlsp.InlineEdit[]
 ---@param ns_id integer
 function M._display_next_suggestion(edits, ns_id)
-    local bufnr = vim.uri_to_bufnr(edits[1].textDocument.uri)
-    local state = vim.b[bufnr].nes_state
-    if state then
-        M.clear_suggestion(vim.api.nvim_get_current_buf(), ns_id)
-    end
-
     if not edits or #edits == 0 then
         -- vim.notify("No suggestion available", vim.log.levels.INFO)
         return
+    end
+
+    local bufnr = vim.uri_to_bufnr(edits[1].textDocument.uri)
+    local state = vim.b[bufnr].nes_state
+    if state then
+        M.clear_suggestion(bufnr, ns_id)
     end
     local suggestion = edits[1]
 

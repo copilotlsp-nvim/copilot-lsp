@@ -30,10 +30,6 @@ return {
     }),
     root_dir = vim.uv.cwd(),
     on_init = function(client)
-        vim.api.nvim_set_hl(0, "CopilotLspNesAdd", { link = "DiffAdd", default = true })
-        vim.api.nvim_set_hl(0, "CopilotLspNesDelete", { link = "DiffDelete", default = true })
-        vim.api.nvim_set_hl(0, "CopilotLspNesApply", { link = "DiffText", default = true })
-
         local au = vim.api.nvim_create_augroup("copilotlsp.init", { clear = true })
         --NOTE: Inline Completions
         --TODO: We dont currently use this code path, so comment for now until a UI is built

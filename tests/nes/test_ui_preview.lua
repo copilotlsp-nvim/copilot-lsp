@@ -1,4 +1,5 @@
 local ref = MiniTest.expect.reference_screenshot
+local eq = MiniTest.expect.equality
 
 local child = MiniTest.new_child_neovim()
 
@@ -7,9 +8,6 @@ T["ui_preview"] = MiniTest.new_set({
     hooks = {
         pre_case = function()
             child.restart({ "-u", "scripts/minimal_init.lua" })
-            child.api.nvim_set_hl(0, "CopilotLspNesAdd", { link = "DiffAdd", default = true })
-            child.api.nvim_set_hl(0, "CopilotLspNesDelete", { link = "DiffDelete", default = true })
-            child.api.nvim_set_hl(0, "CopilotLspNesApply", { link = "DiffText", default = true })
             child.bo.filetype = "txt"
         end,
         post_once = child.stop,
@@ -32,6 +30,14 @@ local cases = {
             },
             newText = "XYZ",
         },
+        preview = {
+            inline_insertion = {
+                text = "XYZ",
+                line = 1,
+                character = 2,
+            },
+        },
+        final = "123456\nabXYZcdefg\nhijklmn",
     },
     ["inline deletion"] = {
         content = "123456\nabcdefg\nhijklmn",
@@ -48,8 +54,23 @@ local cases = {
             },
             newText = "",
         },
+        preview = {
+            deletion = {
+                range = {
+                    start = {
+                        line = 1,
+                        character = 2,
+                    },
+                    ["end"] = {
+                        line = 1,
+                        character = 5,
+                    },
+                },
+            },
+        },
+        final = "123456\nabfg\nhijklmn",
     },
-    ["insert lines after line end"] = {
+    ["insert lines below"] = {
         content = "123456\nabcdefg\nhijklmn",
         edit = {
             range = {
@@ -64,8 +85,15 @@ local cases = {
             },
             newText = "\nXXXX\nYYY",
         },
+        preview = {
+            lines_insertion = {
+                text = "XXXX\nYYY",
+                line = 1,
+            },
+        },
+        final = "123456\nabcdefg\nXXXX\nYYY\nhijklmn",
     },
-    ["insert lines at the beginning"] = {
+    ["insert lines above"] = {
         content = "123456\nabcdefg\nhijklmn",
         edit = {
             range = {
@@ -80,6 +108,14 @@ local cases = {
             },
             newText = "XXXX\nYYY\n",
         },
+        preview = {
+            lines_insertion = {
+                text = "XXXX\nYYY",
+                line = 1,
+                above = true,
+            },
+        },
+        final = "123456\nXXXX\nYYY\nabcdefg\nhijklmn",
     },
     ["inline replacement"] = {
         content = "123456\nabcdefg\nhijklmn",
@@ -96,6 +132,25 @@ local cases = {
             },
             newText = "XXXX\nYYY",
         },
+        preview = {
+            deletion = {
+                range = {
+                    ["end"] = {
+                        character = 6,
+                        line = 1,
+                    },
+                    start = {
+                        character = 0,
+                        line = 0,
+                    },
+                },
+            },
+            lines_insertion = {
+                line = 1,
+                text = "123XXXX\nYYYefg",
+            },
+        },
+        final = "123XXXX\nYYYefg\nhijklmn",
     },
     ["single line replacement"] = {
         content = "123456\nabcdefg\nhijklmn",
@@ -112,11 +167,34 @@ local cases = {
             },
             newText = "XXXX",
         },
+        preview = {
+            deletion = {
+                range = {
+                    ["end"] = {
+                        character = 6,
+                        line = 1,
+                    },
+                    start = {
+                        character = 0,
+                        line = 1,
+                    },
+                },
+            },
+            lines_insertion = {
+                line = 1,
+                text = "XXXX",
+            },
+        },
+        final = "123456\nXXXX\nhijklmn",
     },
 }
 
 local function set_content(content)
     child.api.nvim_buf_set_lines(0, 0, -1, false, vim.split(content, "\n", { plain = true }))
+end
+
+local function get_content()
+    return table.concat(child.api.nvim_buf_get_lines(0, 0, -1, false), "\n")
 end
 
 do
@@ -126,14 +204,25 @@ do
             ref(child.get_screenshot())
 
             child.g.inline_edit = case.edit
-            local _preview = child.lua_func(function()
+            local preview = child.lua_func(function()
+                return require("copilot-lsp.nes.ui").caculate_preview(0, vim.g.inline_edit)
+            end)
+            eq(preview, case.preview)
+
+            child.g.inline_preview = preview
+            child.lua_func(function()
                 local ns_id = vim.api.nvim_create_namespace("nes")
-                local bufnr = vim.api.nvim_get_current_buf()
-                local preview = require("copilot-lsp.nes.ui").caculate_preview(bufnr, vim.g.inline_edit)
-                require("copilot-lsp.nes.ui").display_inline_edit_preview(bufnr, ns_id, preview)
-                return preview
+                require("copilot-lsp.nes.ui").display_inline_edit_preview(0, ns_id, vim.g.inline_preview)
             end)
             ref(child.get_screenshot())
+
+            child.lua_func(function()
+                local bufnr = vim.api.nvim_get_current_buf()
+                vim.lsp.util.apply_text_edits({ vim.g.inline_edit }, bufnr, "utf-16")
+            end)
+
+            local final = get_content()
+            eq(final, case.final)
         end
     end
 end

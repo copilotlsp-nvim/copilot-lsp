@@ -39,6 +39,7 @@
 ---@class copilotlsp.nes.TextInsertion
 ---@field text string
 ---@field line integer insert lines at this line
+---@field above? boolean above the line
 
 ---@class copilotlsp.nes.InlineEditPreview
 ---@field deletion? copilotlsp.nes.TextDeletion
