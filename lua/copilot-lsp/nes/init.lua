@@ -113,4 +113,10 @@ function M.apply_pending_nes(bufnr)
     return true
 end
 
+---@param bufnr? integer
+function M.clear_suggestion(bufnr)
+    bufnr = bufnr and bufnr > 0 and bufnr or vim.api.nvim_get_current_buf()
+    nes_ui.clear_suggestion(bufnr, nes_ns)
+end
+
 return M
