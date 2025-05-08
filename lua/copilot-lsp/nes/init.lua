@@ -8,7 +8,8 @@ local nes_ns = vim.api.nvim_create_namespace("copilotlsp.nes")
 
 ---@param err lsp.ResponseError?
 ---@param result copilotlsp.copilotInlineEditResponse
-local function handle_nes_response(err, result)
+---@param ctx lsp.HandlerContext
+local function handle_nes_response(err, result, ctx)
     if err then
         -- vim.notify(err.message)
         return
@@ -17,14 +18,17 @@ local function handle_nes_response(err, result)
         --- Convert to textEdit fields
         edit.newText = edit.text
     end
-    nes_ui._display_next_suggestion(result.edits, nes_ns)
+    nes_ui._display_next_suggestion(ctx.bufnr, nes_ns, result.edits)
 end
 
 --- Requests the NextEditSuggestion from the current cursor position
----@param copilot_lss vim.lsp.Client?
+---@param copilot_lss? vim.lsp.Client|string
 function M.request_nes(copilot_lss)
     local pos_params = vim.lsp.util.make_position_params(0, "utf-16")
     local version = vim.lsp.util.buf_versions[vim.api.nvim_get_current_buf()]
+    if type(copilot_lss) == "string" then
+        copilot_lss = vim.lsp.get_clients({ name = copilot_lss })[1]
+    end
     assert(copilot_lss, errs.ErrNotStarted)
     ---@diagnostic disable-next-line: inject-field
     pos_params.textDocument.version = version
@@ -107,6 +111,12 @@ function M.apply_pending_nes(bufnr)
         nes_ui.clear_suggestion(bufnr, nes_ns)
     end)
     return true
+end
+
+---@param bufnr? integer
+function M.clear_suggestion(bufnr)
+    bufnr = bufnr and bufnr > 0 and bufnr or vim.api.nvim_get_current_buf()
+    nes_ui.clear_suggestion(bufnr, nes_ns)
 end
 
 return M

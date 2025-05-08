@@ -74,7 +74,7 @@ local function getNesResponse(td)
                     command = { title = "mock", command = "mock" },
                     range = {
                         start = { line = 4, character = 0 },
-                        ["end"] = { line = 4, character = 30 },
+                        ["end"] = { line = 4, character = 31 },
                     },
                     textDocument = td,
                     text = [[  printf("Goodb, %s!\n", name);]],
