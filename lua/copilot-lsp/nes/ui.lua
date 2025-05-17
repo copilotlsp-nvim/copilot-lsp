@@ -22,6 +22,7 @@ function M.clear_suggestion(bufnr, ns_id)
     end
 
     vim.b[bufnr].nes_state = nil
+    vim.b[bufnr].nes_last_cursor_pos = nil
 end
 
 ---@private
@@ -169,18 +170,80 @@ function M._display_next_suggestion(bufnr, ns_id, edits)
     M._display_preview(bufnr, ns_id, preview)
 
     vim.b[bufnr].nes_state = suggestion
+    vim.b[bufnr].nes_namespace_id = ns_id
 
     vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
         buffer = bufnr,
         callback = function()
-            if not vim.b.nes_state then
+            if not vim.b[bufnr].nes_state then
                 return true
             end
 
-            M.clear_suggestion(bufnr, ns_id)
-            return true
+            -- Get cursor info
+            local cursor = vim.api.nvim_win_get_cursor(0)
+            local cursor_line = cursor[1] - 1 -- 0-indexed
+            local prev_pos = vim.b[bufnr].nes_last_cursor_pos or cursor_line
+            vim.b[bufnr].nes_last_cursor_pos = cursor_line
+            local suggestion_line = suggestion.range.start.line
+
+            -- Calculate distances
+            local distance_to_suggestion_start = math.abs(cursor_line - suggestion_line)
+            local prev_distance = math.abs(prev_pos - suggestion_line)
+
+            -- Only clear if:
+            -- 1. We're far away from the suggestion (outside buffer zone), AND
+            -- 2. Either we're moving away from the suggestion, OR we're not within a reasonable viewing distance
+            local buffer_zone = 2 -- Lines buffer
+            local max_view_distance = 10 -- Don't clear if within reasonable viewing distance
+
+            if
+                distance_to_suggestion_start > buffer_zone
+                and (
+                    distance_to_suggestion_start > prev_distance -- Moving away
+                    or distance_to_suggestion_start > max_view_distance
+                ) -- Too far to be relevant
+            then
+                M.clear_suggestion(bufnr, ns_id)
+                return true
+            end
+
+            return false -- Keep the autocmd
         end,
     })
+    -- Also clear on text changes that affect the suggestion area
+    vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
+        buffer = bufnr,
+        callback = function()
+            if not vim.b[bufnr].nes_state then
+                return true
+            end
+            -- Check if the text at the suggestion position has changed
+            local start_line = suggestion.range.start.line
+            local end_line = suggestion.range["end"].line
+            -- If the lines are no longer in the buffer, clear the suggestion
+            if start_line >= vim.api.nvim_buf_line_count(bufnr) then
+                M.clear_suggestion(bufnr, ns_id)
+                return true
+            end
+            return false -- Keep the autocmd
+        end,
+    })
+end
+
+---Private
+---Clear the current suggestion if it exists
+---@return boolean
+function M._clear_current_suggestion()
+    local buf = vim.api.nvim_get_current_buf()
+    if vim.b[buf].nes_state then
+        -- Use stored namespace ID from buffer variable
+        local ns = vim.b[buf].nes_namespace_id
+        if ns then
+            M.clear_suggestion(buf, ns)
+            return true
+        end
+    end
+    return false
 end
 
 return M
