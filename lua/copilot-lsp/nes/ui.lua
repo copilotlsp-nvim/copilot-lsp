@@ -219,7 +219,6 @@ function M._display_next_suggestion(bufnr, ns_id, edits)
             end
             -- Check if the text at the suggestion position has changed
             local start_line = suggestion.range.start.line
-            local end_line = suggestion.range["end"].line
             -- If the lines are no longer in the buffer, clear the suggestion
             if start_line >= vim.api.nvim_buf_line_count(bufnr) then
                 M.clear_suggestion(bufnr, ns_id)
