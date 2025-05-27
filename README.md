@@ -63,11 +63,13 @@ You don’t need to configure anything, but you can customize the defaults:
 ```lua
 require('copilot-lsp').setup({
   -- NES smart clearing options
-  move_count_threshold = 3,        -- Clear after 3 cursor movements
-  distance_threshold = 40,         -- Clear if cursor is >40 lines away
-  clear_on_large_distance = true,  -- Enable distance-based clearing
-  count_horizontal_moves = true,   -- Count horizontal moves in normal mode
-  reset_on_approaching = true,     -- Reset counter when moving toward suggestion
+  nes = {
+    move_count_threshold = 3,        -- Clear after 3 cursor movements
+    distance_threshold = 40,         -- Clear if cursor is >40 lines away
+    clear_on_large_distance = true,  -- Enable distance-based clearing
+    count_horizontal_moves = true,   -- Count horizontal moves in normal mode
+    reset_on_approaching = true,     -- Reset counter when moving toward suggestion
+  }
 })
 ```
 

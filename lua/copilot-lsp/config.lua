@@ -1,11 +1,13 @@
 local M = {}
 
 M.defaults = {
-    move_count_threshold = 3,
-    distance_threshold = 40,
-    clear_on_large_distance = true,
-    count_horizontal_moves = true,
-    reset_on_approaching = true,
+    nes = {
+        move_count_threshold = 3,
+        distance_threshold = 40,
+        clear_on_large_distance = true,
+        count_horizontal_moves = true,
+        reset_on_approaching = true
+    }
 }
 
 M.config = vim.deepcopy(M.defaults)

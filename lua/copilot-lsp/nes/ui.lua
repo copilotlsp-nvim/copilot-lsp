@@ -222,13 +222,13 @@ function M._display_next_suggestion(bufnr, ns_id, edits)
             elseif first_char == "v" or first_char == "V" or mode == "\22" then
                 should_count = true
             -- In normal mode with horizontal movement
-            elseif moved_horizontally and config.count_horizontal_moves then
+            elseif moved_horizontally and config.nes.count_horizontal_moves then
                 should_count = true
             -- In normal mode with line changes
             elseif line_distance > last_line_distance then
                 should_count = true
             -- Moving toward suggestion in normal mode
-            elseif line_distance < last_line_distance and config.reset_on_approaching then
+            elseif line_distance < last_line_distance and config.nes.reset_on_approaching then
                 if line_distance > 1 then -- Don't reset if 0 or 1 line away
                     vim.b[bufnr].copilotlsp_nes_cursor_moves = 0
                 end
@@ -240,7 +240,7 @@ function M._display_next_suggestion(bufnr, ns_id, edits)
             end
 
             -- Clear if counter threshold reached
-            if vim.b[bufnr].copilotlsp_nes_cursor_moves >= config.move_count_threshold then
+            if vim.b[bufnr].copilotlsp_nes_cursor_moves >= config.nes.move_count_threshold then
                 vim.b[bufnr].copilotlsp_nes_cursor_moves = 0
                 vim.schedule(function()
                     M.clear_suggestion(bufnr, ns_id)
@@ -249,7 +249,7 @@ function M._display_next_suggestion(bufnr, ns_id, edits)
             end
 
             -- Optional: Clear on large distance
-            if config.clear_on_large_distance and line_distance > config.distance_threshold then
+            if config.nes.clear_on_large_distance and line_distance > config.nes.distance_threshold then
                 M.clear_suggestion(bufnr, ns_id)
                 return true
             end
