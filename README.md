@@ -40,27 +40,17 @@ return {
 ```
 
 
-### Commands
-
-The plugin provides the following command:
-
-- `CopilotLsp clear` - Clear the current next edit suggestion (NES)
-
-### Example Keymappings
-
 #### Clearing suggestions with Escape
 
 You can map the `<Esc>` key to clear suggestions while preserving its other functionality:
 
 ```lua
--- Clear copilot suggestion with Esc if visible, otherwise clear search highlights
+-- Clear copilot suggestion with Esc if visible, otherwise preserve default Esc behavior
 vim.keymap.set("n", "<esc>", function()
-  if vim.b.nes_state then
-    vim.cmd("CopilotLsp clear")
-  else
-    vim.cmd("noh")
-  end
-end, { desc = "Clear hlsearch or clear Copilot" })
+    if not require('copilot-lsp.nes').clear() then
+        -- fallback to other functionality
+    end
+end, { desc = "Clear Copilot suggestion or fallback" })
 ```
 
 ### Blink Integration

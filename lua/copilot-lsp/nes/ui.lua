@@ -1,4 +1,5 @@
 local M = {}
+local config = require("copilot-lsp.config").config
 
 ---@param bufnr integer
 ---@param ns_id integer
@@ -21,8 +22,12 @@ function M.clear_suggestion(bufnr, ns_id)
         return
     end
 
+    -- Clear buffer variables
     vim.b[bufnr].nes_state = nil
     vim.b[bufnr].nes_last_cursor_pos = nil
+    vim.b[bufnr].copilotlsp_nes_cursor_moves = nil
+    vim.b[bufnr].copilotlsp_nes_last_line = nil
+    vim.b[bufnr].copilotlsp_nes_last_col = nil
 end
 
 ---@private
@@ -160,17 +165,16 @@ end
 function M._display_next_suggestion(bufnr, ns_id, edits)
     M.clear_suggestion(bufnr, ns_id)
     if not edits or #edits == 0 then
-        -- vim.notify("No suggestion available", vim.log.levels.INFO)
         return
     end
 
     local suggestion = edits[1]
-
     local preview = M._calculate_preview(bufnr, suggestion)
     M._display_preview(bufnr, ns_id, preview)
 
     vim.b[bufnr].nes_state = suggestion
-    vim.b[bufnr].nes_namespace_id = ns_id
+    vim.b[bufnr].copilotlsp_nes_namespace_id = ns_id
+    vim.b[bufnr].copilotlsp_nes_cursor_moves = 1
 
     vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
         buffer = bufnr,
@@ -179,30 +183,70 @@ function M._display_next_suggestion(bufnr, ns_id, edits)
                 return true
             end
 
-            -- Get cursor info
+            -- Get cursor position
             local cursor = vim.api.nvim_win_get_cursor(0)
             local cursor_line = cursor[1] - 1 -- 0-indexed
-            local prev_pos = vim.b[bufnr].nes_last_cursor_pos or cursor_line
-            vim.b[bufnr].nes_last_cursor_pos = cursor_line
+            local cursor_col = cursor[2]
             local suggestion_line = suggestion.range.start.line
 
-            -- Calculate distances
-            local distance_to_suggestion_start = math.abs(cursor_line - suggestion_line)
-            local prev_distance = math.abs(prev_pos - suggestion_line)
+            -- Store previous position
+            local last_line = vim.b[bufnr].copilotlsp_nes_last_line or cursor_line
+            local last_col = vim.b[bufnr].copilotlsp_nes_last_col or cursor_col
 
-            -- Only clear if:
-            -- 1. We're far away from the suggestion (outside buffer zone), AND
-            -- 2. Either we're moving away from the suggestion, OR we're not within a reasonable viewing distance
-            local buffer_zone = 2 -- Lines buffer
-            local max_view_distance = 10 -- Don't clear if within reasonable viewing distance
+            -- Update stored position
+            vim.b[bufnr].copilotlsp_nes_last_line = cursor_line
+            vim.b[bufnr].copilotlsp_nes_last_col = cursor_col
 
-            if
-                distance_to_suggestion_start > buffer_zone
-                and (
-                    distance_to_suggestion_start > prev_distance -- Moving away
-                    or distance_to_suggestion_start > max_view_distance
-                ) -- Too far to be relevant
-            then
+            -- Calculate distance to suggestion
+            local line_distance = math.abs(cursor_line - suggestion_line)
+            local last_line_distance = math.abs(last_line - suggestion_line)
+
+            -- Check if cursor changed position on same line
+            local moved_horizontally = (cursor_line == last_line) and (cursor_col ~= last_col)
+
+            -- Get current mode
+            local mode = vim.api.nvim_get_mode().mode
+
+            -- Determine if we should count this movement
+            local should_count = false
+            local first_char = mode:sub(1, 1)
+
+            -- In insert mode, only count cursor movements, not text changes
+            if first_char == "i" then
+                if moved_horizontally or line_distance ~= last_line_distance then
+                    should_count = true
+                end
+            elseif first_char == "v" or first_char == "V" or mode == "\22" then
+                should_count = true
+            -- In normal mode with horizontal movement
+            elseif moved_horizontally and config.count_horizontal_moves then
+                should_count = true
+            -- In normal mode with line changes
+            elseif line_distance > last_line_distance then
+                should_count = true
+            -- Moving toward suggestion in normal mode
+            elseif line_distance < last_line_distance and config.reset_on_approaching then
+                if line_distance > 1 then -- Don't reset if 0 or 1 line away
+                    vim.b[bufnr].copilotlsp_nes_cursor_moves = 0
+                end
+            end
+
+            -- Update counter if needed
+            if should_count then
+                vim.b[bufnr].copilotlsp_nes_cursor_moves = (vim.b[bufnr].copilotlsp_nes_cursor_moves or 0) + 1
+            end
+
+            -- Clear if counter threshold reached
+            if vim.b[bufnr].copilotlsp_nes_cursor_moves >= config.move_count_threshold then
+                vim.b[bufnr].copilotlsp_nes_cursor_moves = 0
+                vim.schedule(function()
+                    M.clear_suggestion(bufnr, ns_id)
+                end)
+                return true
+            end
+
+            -- Optional: Clear on large distance
+            if config.clear_on_large_distance and line_distance > config.distance_threshold then
                 M.clear_suggestion(bufnr, ns_id)
                 return true
             end
@@ -227,22 +271,6 @@ function M._display_next_suggestion(bufnr, ns_id, edits)
             return false -- Keep the autocmd
         end,
     })
-end
-
----Private
----Clear the current suggestion if it exists
----@return boolean
-function M._clear_current_suggestion()
-    local buf = vim.api.nvim_get_current_buf()
-    if vim.b[buf].nes_state then
-        -- Use stored namespace ID from buffer variable
-        local ns = vim.b[buf].nes_namespace_id
-        if ns then
-            M.clear_suggestion(buf, ns)
-            return true
-        end
-    end
-    return false
 end
 
 return M

@@ -119,19 +119,16 @@ function M.clear_suggestion(bufnr)
     nes_ui.clear_suggestion(bufnr, nes_ns)
 end
 
-vim.api.nvim_create_user_command("CopilotLsp", function(opts)
-    local cmd = opts.args
-    if cmd == "clear" then
-        nes_ui._clear_current_suggestion()
-    else
-        vim.notify("Unknown CopilotLsp subcommand: " .. cmd, vim.log.levels.ERROR, { title = "Copilot-Lsp" })
+--- Clear the current suggestion if it exists
+---@return boolean -- true if a suggestion was cleared, false if no suggestion existed
+function M.clear()
+    local buf = vim.api.nvim_get_current_buf()
+    if vim.b[buf].nes_state then
+        local ns = vim.b[buf].nes_namespace_id or nes_ns
+        nes_ui.clear_suggestion(buf, ns)
+        return true
     end
-end, {
-    nargs = 1,
-    desc = "Copilot LSP commands",
-    complete = function(_, _, _)
-        return { "clear" }
-    end,
-})
+    return false
+end
 
 return M
