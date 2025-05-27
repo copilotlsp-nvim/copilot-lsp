@@ -280,24 +280,28 @@ T["ui_preview"]["cursor_aware_suggestion_clearing"] = function()
     end)
     ref(child.get_screenshot())
 
-    -- Test 1: Moving cursor nearby shouldn't clear the suggestion (within buffer zone)
-    child.cmd("normal! gg") -- Move to first line
-    child.cmd("normal! j") -- Move to line 2, just one line away from suggestion
+    -- Test 1: Moving cursor nearby shouldn't clear the suggestion (within counter threshold)
+    child.cmd("normal! gg") -- Move to first line (counter: 1 -> 2)
+    child.cmd("normal! j") -- Move to line 2 (counter: 2 -> 3)
     child.lua_func(function()
-        vim.uv.sleep(500)
+        vim.uv.sleep(500) -- Give time for autocmd to process
     end)
 
-    -- Verify suggestion still exists
+    -- Verify suggestion still exists (should be at threshold but not exceeded)
     local suggestion_exists = child.lua_func(function()
         return vim.b[0].nes_state ~= nil
     end)
     eq(suggestion_exists, true)
     ref(child.get_screenshot())
 
-    -- Test 2: Moving cursor far away should clear the suggestion
-    child.cmd("normal! 5j") -- Move to line 7, beyond buffer zone and max view distance
+    -- Test 2: One more move should clear the suggestion (exceeds counter threshold)
+    child.cmd("normal! j")
+    child.cmd("normal! j")
+    child.cmd("normal! j")
+    child.cmd("normal! j")
+    child.cmd("normal! j")
     child.lua_func(function()
-        vim.uv.sleep(500)
+        vim.uv.sleep(500) -- Give time for autocmd to process
     end)
 
     -- Verify suggestion is cleared
