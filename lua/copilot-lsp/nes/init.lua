@@ -128,7 +128,7 @@ end
 function M.clear()
     local buf = vim.api.nvim_get_current_buf()
     if vim.b[buf].nes_state then
-        local ns = vim.b[buf].nes_namespace_id or nes_ns
+        local ns = vim.b[buf].copilotlsp_nes_namespace_id or nes_ns
         nes_ui.clear_suggestion(buf, ns)
         return true
     end
