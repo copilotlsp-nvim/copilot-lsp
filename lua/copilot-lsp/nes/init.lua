@@ -14,6 +14,10 @@ local function handle_nes_response(err, result, ctx)
         -- vim.notify(err.message)
         return
     end
+    -- Validate buffer still exists before processing response
+    if not vim.api.nvim_buf_is_valid(ctx.bufnr) then
+        return
+    end
     for _, edit in ipairs(result.edits) do
         --- Convert to textEdit fields
         edit.newText = edit.text

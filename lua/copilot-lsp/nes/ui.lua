@@ -11,6 +11,10 @@ end
 ---@param ns_id integer
 function M.clear_suggestion(bufnr, ns_id)
     bufnr = bufnr and bufnr > 0 and bufnr or vim.api.nvim_get_current_buf()
+    -- Validate buffer exists before accessing buffer-scoped variables
+    if not vim.api.nvim_buf_is_valid(bufnr) then
+        return
+    end
     if vim.b[bufnr].nes_jump then
         vim.b[bufnr].nes_jump = false
         return
