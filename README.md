@@ -53,6 +53,25 @@ vim.keymap.set("n", "<esc>", function()
 end, { desc = "Clear Copilot suggestion or fallback" })
 ```
 
+## Default Configuration
+
+
+### NES (Next Edit Suggestion) Smart Clearing
+You don’t need to configure anything, but you can customize the defaults:
+`move_count_threshold` is the most important. It controls how many cursor moves happen before suggestions are cleared. Higher = slower to clear.
+
+```lua
+require('copilot-lsp').setup({
+  -- NES smart clearing options
+  move_count_threshold = 3,        -- Clear after 3 cursor movements
+  distance_threshold = 40,         -- Clear if cursor is >40 lines away
+  clear_on_large_distance = true,  -- Enable distance-based clearing
+  count_horizontal_moves = true,   -- Count horizontal moves in normal mode
+  reset_on_approaching = true,     -- Reset counter when moving toward suggestion
+})
+```
+
+
 ### Blink Integration
 
 ```lua
