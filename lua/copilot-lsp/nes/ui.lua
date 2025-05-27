@@ -28,7 +28,6 @@ function M.clear_suggestion(bufnr, ns_id)
 
     -- Clear buffer variables
     vim.b[bufnr].nes_state = nil
-    vim.b[bufnr].nes_last_cursor_pos = nil
     vim.b[bufnr].copilotlsp_nes_cursor_moves = nil
     vim.b[bufnr].copilotlsp_nes_last_line = nil
     vim.b[bufnr].copilotlsp_nes_last_col = nil

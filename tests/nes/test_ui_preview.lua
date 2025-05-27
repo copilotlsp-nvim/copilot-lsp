@@ -334,8 +334,6 @@ T["ui_preview"]["suggestion_preserves_on_movement_towards"] = function()
         local ns_id = vim.api.nvim_create_namespace("nes_test")
         local edits = { vim.g.test_edit }
         require("copilot-lsp.nes.ui")._display_next_suggestion(0, ns_id, edits)
-        -- Set last cursor position to simulate coming from further away
-        vim.b[0].nes_last_cursor_pos = 7 -- Line 8 (0-indexed)
     end)
     ref(child.get_screenshot())
 
