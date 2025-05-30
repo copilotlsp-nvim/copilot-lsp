@@ -4,6 +4,7 @@
 ---@field clear_on_large_distance boolean Whether to clear suggestion when cursor is far away
 ---@field count_horizontal_moves boolean Whether to count horizontal cursor movements
 ---@field reset_on_approaching boolean Whether to reset counter when approaching suggestion
+---@field enable_history boolean Whether to enable suggestion history for restoration
 
 local M = {}
 
@@ -16,6 +17,7 @@ M.defaults = {
         clear_on_large_distance = true,
         count_horizontal_moves = true,
         reset_on_approaching = true,
+        enable_history = true,
     },
 }
 

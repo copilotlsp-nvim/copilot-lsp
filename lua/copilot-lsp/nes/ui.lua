@@ -7,6 +7,22 @@ local function _dismiss_suggestion(bufnr, ns_id)
     pcall(vim.api.nvim_buf_clear_namespace, bufnr, ns_id, 0, -1)
 end
 
+---@private
+---@param bufnr integer
+---@param state copilotlsp.InlineEdit
+local function _store_suggestion_history(bufnr, state)
+    if not config.nes.enable_history then
+        return
+    end
+    vim.b[bufnr].copilotlsp_nes_history = vim.deepcopy(state)
+end
+
+---@private
+---@param bufnr integer
+local function _clear_suggestion_history(bufnr)
+    vim.b[bufnr].copilotlsp_nes_history = nil
+end
+
 ---@param bufnr? integer
 ---@param ns_id integer
 function M.clear_suggestion(bufnr, ns_id)
@@ -22,6 +38,10 @@ function M.clear_suggestion(bufnr, ns_id)
     _dismiss_suggestion(bufnr, ns_id)
     ---@type copilotlsp.InlineEdit
     local state = vim.b[bufnr].nes_state
+    if state then
+        _store_suggestion_history(bufnr, state)
+    end
+    _dismiss_suggestion(bufnr, ns_id)
     if not state then
         return
     end
@@ -31,6 +51,38 @@ function M.clear_suggestion(bufnr, ns_id)
     vim.b[bufnr].copilotlsp_nes_cursor_moves = nil
     vim.b[bufnr].copilotlsp_nes_last_line = nil
     vim.b[bufnr].copilotlsp_nes_last_col = nil
+end
+
+---@param bufnr? integer
+---@param ns_id integer
+---@return boolean -- true if suggestion was restored, false otherwise
+function M.restore_suggestion(bufnr, ns_id)
+    bufnr = bufnr and bufnr > 0 and bufnr or vim.api.nvim_get_current_buf()
+    if not vim.api.nvim_buf_is_valid(bufnr) then
+        return false
+    end
+    -- Don't restore if there's already an active suggestion
+    if vim.b[bufnr].nes_state then
+        return false
+    end
+    -- Don't restore if history is disabled
+    if not config.nes.enable_history then
+        return false
+    end
+    ---@type copilotlsp.InlineEdit
+    local history = vim.b[bufnr].copilotlsp_nes_history
+    if not history then
+        return false
+    end
+    -- Validate that the history suggestion is still applicable
+    local start_line = history.range.start.line
+    if start_line >= vim.api.nvim_buf_line_count(bufnr) then
+        _clear_suggestion_history(bufnr)
+        return false
+    end
+    -- Restore the suggestion
+    M._display_next_suggestion(bufnr, ns_id, { history })
+    return true
 end
 
 ---@private
@@ -170,6 +222,11 @@ function M._display_next_suggestion(bufnr, ns_id, edits)
     if not edits or #edits == 0 then
         return
     end
+    -- Clear history when new suggestion arrives (not a restoration)
+    if config.nes.enable_history and not vim.b[bufnr].copilotlsp_nes_restoring then
+        _clear_suggestion_history(bufnr)
+    end
+    vim.b[bufnr].copilotlsp_nes_restoring = nil
 
     local suggestion = edits[1]
     local preview = M._calculate_preview(bufnr, suggestion)
