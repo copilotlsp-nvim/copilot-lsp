@@ -135,21 +135,12 @@ function M.clear()
     return false
 end
 
---- Check if there's a suggestion in history that can be restored
----@param bufnr? integer
----@return boolean
-function M.has_history(bufnr)
-    bufnr = bufnr and bufnr > 0 and bufnr or vim.api.nvim_get_current_buf()
-    local history = vim.b[bufnr].copilotlsp_nes_history
-    return history ~= nil and #history > 0
-end
-
 --- Restore the last suggestion from history
 ---@param bufnr? integer
 ---@return boolean -- true if suggestion was restored, false otherwise
 function M.restore_suggestion(bufnr)
     bufnr = bufnr and bufnr > 0 and bufnr or vim.api.nvim_get_current_buf()
-    if not M.has_history(bufnr) then
+    if not nes_ui.has_history(bufnr) then
         return false
     end
     -- Set flag to indicate this is a restoration, not a new suggestion

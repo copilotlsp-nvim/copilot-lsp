@@ -1,6 +1,8 @@
 local M = {}
 local config = require("copilot-lsp.config").config
 
+local buffer_histories = {}
+
 ---@param bufnr integer
 ---@param ns_id integer
 local function _dismiss_suggestion(bufnr, ns_id)
@@ -11,18 +13,17 @@ end
 ---@param bufnr integer
 ---@param state copilotlsp.InlineEdit
 local function _store_suggestion_history(bufnr, state)
-    local history = vim.b[bufnr].copilotlsp_nes_history or {}
-    table.insert(history, 1, vim.deepcopy(state))
-    if #history > 2 then
-        table.remove(history, 3)
+    if not buffer_histories[bufnr] then
+        buffer_histories[bufnr] = vim.ringbuf(2)
     end
-    vim.b[bufnr].copilotlsp_nes_history = history
+    buffer_histories[bufnr]:push(vim.deepcopy(state))
 end
 
 ---@private
 ---@param bufnr integer
 local function _clear_suggestion_history(bufnr)
-    vim.b[bufnr].copilotlsp_nes_history = nil
+    buffer_histories[bufnr] = nil
+    vim.b[bufnr].copilotlsp_nes_restore_index = nil
 end
 
 ---@param bufnr? integer
@@ -44,6 +45,19 @@ function M.clear_suggestion(bufnr, ns_id)
     vim.b[bufnr].copilotlsp_nes_last_col = nil
 end
 
+--- Check if there's history for a buffer
+---@param bufnr integer
+---@return boolean
+function M.has_history(bufnr)
+    local history = buffer_histories[bufnr]
+    if not history then
+        return false
+    end
+    -- Check if ringbuf has any items
+    local item = history:peek()
+    return item ~= nil
+end
+
 ---@param bufnr? integer
 ---@param ns_id integer
 ---@return boolean -- true if suggestion was restored, false otherwise
@@ -52,32 +66,27 @@ function M.restore_suggestion(bufnr, ns_id)
     if not vim.api.nvim_buf_is_valid(bufnr) then
         return false
     end
-    local history = vim.b[bufnr].copilotlsp_nes_history
-    if not history or #history == 0 then
+    local history = buffer_histories[bufnr]
+    if not history then
         return false
     end
-    local restore_index = vim.b[bufnr].copilotlsp_nes_restore_index or 0
-    restore_index = restore_index + 1
-    -- If we've cycled through all history, wrap around
-    if restore_index > #history then
-        restore_index = 1
+    local suggestion = history:pop()
+    if not suggestion then
+        return false
     end
-    local suggestion = history[restore_index]
-    vim.b[bufnr].copilotlsp_nes_restore_index = restore_index
+    -- Validate suggestion is still applicable
     local start_line = suggestion.range.start.line
     if start_line >= vim.api.nvim_buf_line_count(bufnr) then
         _clear_suggestion_history(bufnr)
         return false
     end
-    -- Clear current display and show restored suggestion
     _dismiss_suggestion(bufnr, ns_id)
     local preview = M._calculate_preview(bufnr, suggestion)
     M._display_preview(bufnr, ns_id, preview)
-
     vim.b[bufnr].nes_state = suggestion
     vim.b[bufnr].copilotlsp_nes_namespace_id = ns_id
     vim.b[bufnr].copilotlsp_nes_cursor_moves = 1
-
+    history:push(suggestion)
     return true
 end
 
@@ -328,5 +337,12 @@ function M._display_next_suggestion(bufnr, ns_id, edits)
         end,
     })
 end
+
+-- Clean up history when buffer is deleted
+vim.api.nvim_create_autocmd("BufDelete", {
+    callback = function(ev)
+        buffer_histories[ev.buf] = nil
+    end,
+})
 
 return M
