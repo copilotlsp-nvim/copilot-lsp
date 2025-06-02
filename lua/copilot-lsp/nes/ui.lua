@@ -14,7 +14,12 @@ local function _store_suggestion_history(bufnr, state)
     if not config.nes.enable_history then
         return
     end
-    vim.b[bufnr].copilotlsp_nes_history = vim.deepcopy(state)
+    local history = vim.b[bufnr].copilotlsp_nes_history or {}
+    table.insert(history, 1, vim.deepcopy(state))
+    if #history > 2 then
+        table.remove(history, 3)
+    end
+    vim.b[bufnr].copilotlsp_nes_history = history
 end
 
 ---@private
@@ -27,7 +32,6 @@ end
 ---@param ns_id integer
 function M.clear_suggestion(bufnr, ns_id)
     bufnr = bufnr and bufnr > 0 and bufnr or vim.api.nvim_get_current_buf()
-    -- Validate buffer exists before accessing buffer-scoped variables
     if not vim.api.nvim_buf_is_valid(bufnr) then
         return
     end
@@ -37,16 +41,6 @@ function M.clear_suggestion(bufnr, ns_id)
     end
     _dismiss_suggestion(bufnr, ns_id)
     ---@type copilotlsp.InlineEdit
-    local state = vim.b[bufnr].nes_state
-    if state then
-        _store_suggestion_history(bufnr, state)
-    end
-    _dismiss_suggestion(bufnr, ns_id)
-    if not state then
-        return
-    end
-
-    -- Clear buffer variables
     vim.b[bufnr].nes_state = nil
     vim.b[bufnr].copilotlsp_nes_cursor_moves = nil
     vim.b[bufnr].copilotlsp_nes_last_line = nil
@@ -61,27 +55,35 @@ function M.restore_suggestion(bufnr, ns_id)
     if not vim.api.nvim_buf_is_valid(bufnr) then
         return false
     end
-    -- Don't restore if there's already an active suggestion
-    if vim.b[bufnr].nes_state then
-        return false
-    end
-    -- Don't restore if history is disabled
     if not config.nes.enable_history then
         return false
     end
-    ---@type copilotlsp.InlineEdit
     local history = vim.b[bufnr].copilotlsp_nes_history
-    if not history then
+    if not history or #history == 0 then
         return false
     end
-    -- Validate that the history suggestion is still applicable
-    local start_line = history.range.start.line
+    local restore_index = vim.b[bufnr].copilotlsp_nes_restore_index or 0
+    restore_index = restore_index + 1
+    -- If we've cycled through all history, wrap around
+    if restore_index > #history then
+        restore_index = 1
+    end
+    local suggestion = history[restore_index]
+    vim.b[bufnr].copilotlsp_nes_restore_index = restore_index
+    local start_line = suggestion.range.start.line
     if start_line >= vim.api.nvim_buf_line_count(bufnr) then
         _clear_suggestion_history(bufnr)
         return false
     end
-    -- Restore the suggestion
-    M._display_next_suggestion(bufnr, ns_id, { history })
+    -- Clear current display and show restored suggestion
+    _dismiss_suggestion(bufnr, ns_id)
+    local preview = M._calculate_preview(bufnr, suggestion)
+    M._display_preview(bufnr, ns_id, preview)
+
+    vim.b[bufnr].nes_state = suggestion
+    vim.b[bufnr].copilotlsp_nes_namespace_id = ns_id
+    vim.b[bufnr].copilotlsp_nes_cursor_moves = 1
+
     return true
 end
 
@@ -218,15 +220,11 @@ end
 ---@param ns_id integer
 ---@param edits copilotlsp.InlineEdit[]
 function M._display_next_suggestion(bufnr, ns_id, edits)
-    M.clear_suggestion(bufnr, ns_id)
     if not edits or #edits == 0 then
         return
     end
-    -- Clear history when new suggestion arrives (not a restoration)
-    if config.nes.enable_history and not vim.b[bufnr].copilotlsp_nes_restoring then
-        _clear_suggestion_history(bufnr)
-    end
-    vim.b[bufnr].copilotlsp_nes_restoring = nil
+    -- Clear current suggestion first
+    M.clear_suggestion(bufnr, ns_id)
 
     local suggestion = edits[1]
     local preview = M._calculate_preview(bufnr, suggestion)
@@ -235,6 +233,10 @@ function M._display_next_suggestion(bufnr, ns_id, edits)
     vim.b[bufnr].nes_state = suggestion
     vim.b[bufnr].copilotlsp_nes_namespace_id = ns_id
     vim.b[bufnr].copilotlsp_nes_cursor_moves = 1
+
+    -- Store this suggestion in history immediately after displaying it
+    _store_suggestion_history(bufnr, suggestion)
+    vim.b[bufnr].copilotlsp_nes_restore_index = 0
 
     vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
         buffer = bufnr,

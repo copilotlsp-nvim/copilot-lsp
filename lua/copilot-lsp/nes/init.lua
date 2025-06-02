@@ -140,13 +140,15 @@ end
 ---@return boolean
 function M.has_history(bufnr)
     bufnr = bufnr and bufnr > 0 and bufnr or vim.api.nvim_get_current_buf()
-    return vim.b[bufnr].copilotlsp_nes_history ~= nil
+    local history = vim.b[bufnr].copilotlsp_nes_history
+    return history ~= nil and #history > 0
 end
 
 --- Restore the last suggestion from history
 ---@param bufnr? integer
 ---@return boolean -- true if suggestion was restored, false otherwise
 function M.restore_suggestion(bufnr)
+    bufnr = bufnr and bufnr > 0 and bufnr or vim.api.nvim_get_current_buf()
     if not M.has_history(bufnr) then
         return false
     end
