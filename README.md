@@ -53,6 +53,20 @@ vim.keymap.set("n", "<esc>", function()
 end, { desc = "Clear Copilot suggestion or fallback" })
 ```
 
+
+#### Restoring previous suggestions
+
+The history automatically stores the last 2 suggestions. Each time you call restore, it cycles to the next previous suggestion. When you reach the end, it wraps back to the most recent one.
+
+You can restore and cycle through the last 2 suggestions:
+```lua
+-- Restore previous suggestions (cycles through last 2)
+vim.keymap.set("n", "<leader>cr", function()
+    require('copilot-lsp.nes').restore_suggestion()
+end, { desc = "Restore previous Copilot suggestion" })
+```
+
+
 ## Default Configuration
 
 
