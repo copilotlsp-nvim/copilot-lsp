@@ -11,9 +11,6 @@ end
 ---@param bufnr integer
 ---@param state copilotlsp.InlineEdit
 local function _store_suggestion_history(bufnr, state)
-    if not config.nes.enable_history then
-        return
-    end
     local history = vim.b[bufnr].copilotlsp_nes_history or {}
     table.insert(history, 1, vim.deepcopy(state))
     if #history > 2 then
@@ -53,9 +50,6 @@ end
 function M.restore_suggestion(bufnr, ns_id)
     bufnr = bufnr and bufnr > 0 and bufnr or vim.api.nvim_get_current_buf()
     if not vim.api.nvim_buf_is_valid(bufnr) then
-        return false
-    end
-    if not config.nes.enable_history then
         return false
     end
     local history = vim.b[bufnr].copilotlsp_nes_history
