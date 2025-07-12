@@ -1,4 +1,7 @@
-local ref = MiniTest.expect.reference_screenshot
+local ref = function(screenshot)
+    -- ignore the last, 24th line on the screen as it has differing `screenattr` values between stable and nightly
+    MiniTest.expect.reference_screenshot(screenshot, nil, { ignore_attr = { 24 } })
+end
 
 local child = MiniTest.new_child_neovim()
 

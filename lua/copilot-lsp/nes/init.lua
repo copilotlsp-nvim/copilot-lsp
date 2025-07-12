@@ -63,7 +63,10 @@ function M.walk_cursor_start_edit(bufnr)
                 ["end"] = state.range["start"],
             },
         }
-        return vim.lsp.util.show_document(jump_loc_before, "utf-16", { focus = true })
+        vim.schedule(function()
+            vim.lsp.util.show_document(jump_loc_before, "utf-16", { focus = true })
+        end)
+        return true
     else
         return false
     end
