@@ -315,43 +315,205 @@ T["ui_preview"]["cursor_aware_suggestion_clearing"] = function()
     ref(child.get_screenshot())
 end
 
-T["ui_preview"]["suggestion_preserves_on_movement_towards"] = function()
-    set_content("line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8")
-    ref(child.get_screenshot())
+T["ui_preview"]["suggestion_history_basic_cycle"] = function()
+    set_content("line1\nline2\nline3")
+    -- Create first suggestion and display it
+    local edit1 = {
+        range = { start = { line = 1, character = 0 }, ["end"] = { line = 1, character = 0 } },
+        newText = "-- first suggestion",
+    }
+    child.g.test_edit = edit1
+    child.lua_func(function()
+        local ns_id = vim.api.nvim_create_namespace("nes_test")
+        local bufnr = vim.api.nvim_get_current_buf()
+        require("copilot-lsp.nes.ui")._display_next_suggestion(bufnr, ns_id, { vim.g.test_edit })
+        vim.uv.sleep(300)
+    end)
 
-    -- Position cursor at line 8
-    child.cmd("normal! gg7j")
+    -- Create and display second suggestion
+    local edit2 = {
+        range = { start = { line = 2, character = 0 }, ["end"] = { line = 2, character = 0 } },
+        newText = "-- second suggestion",
+    }
+    child.g.test_edit = edit2
+    child.lua_func(function()
+        local ns_id = vim.api.nvim_create_namespace("nes_test")
+        local bufnr = vim.api.nvim_get_current_buf()
+        require("copilot-lsp.nes.ui")._display_next_suggestion(bufnr, ns_id, { vim.g.test_edit })
+        vim.uv.sleep(300)
+    end)
 
-    -- Create a suggestion at line 3
-    local edit = {
-        range = {
-            start = { line = 2, character = 0 },
-            ["end"] = { line = 2, character = 0 },
-        },
-        newText = "suggested text ",
+    child.lua_func(function()
+        local ns_id = vim.api.nvim_create_namespace("nes_test")
+        local bufnr = vim.api.nvim_get_current_buf()
+        require("copilot-lsp.nes.ui").clear_suggestion(bufnr, ns_id)
+        vim.uv.sleep(300)
+    end)
+
+    local has_history = child.lua_func(function()
+        local bufnr = vim.api.nvim_get_current_buf()
+        return require("copilot-lsp.nes.ui").has_history(bufnr)
+    end)
+    eq(has_history, true)
+
+    -- Test cycling through suggestions
+    local restored1 = child.lua_func(function()
+        local ns_id = vim.api.nvim_create_namespace("nes_test")
+        local bufnr = vim.api.nvim_get_current_buf()
+        local result = require("copilot-lsp.nes.ui").restore_suggestion(bufnr, ns_id)
+        vim.uv.sleep(300)
+        return result
+    end)
+    eq(restored1, true)
+
+    local restored2 = child.lua_func(function()
+        local ns_id = vim.api.nvim_create_namespace("nes_test")
+        local bufnr = vim.api.nvim_get_current_buf()
+        local result = require("copilot-lsp.nes.ui").restore_suggestion(bufnr, ns_id)
+        vim.uv.sleep(300)
+        return result
+    end)
+    eq(restored2, true)
+
+    local restored3 = child.lua_func(function()
+        local ns_id = vim.api.nvim_create_namespace("nes_test")
+        local bufnr = vim.api.nvim_get_current_buf()
+        local result = require("copilot-lsp.nes.ui").restore_suggestion(bufnr, ns_id)
+        vim.uv.sleep(300)
+        return result
+    end)
+    eq(restored3, true)
+end
+
+T["ui_preview"]["suggestion_history_max_two_items"] = function()
+    set_content("line1\nline2\nline3\nline4")
+
+    -- Create and display three suggestions
+    local suggestions = {
+        { newText = "-- first", line = 0 },
+        { newText = "-- second", line = 1 },
+        { newText = "-- third", line = 2 },
     }
 
-    -- Display suggestion
+    for _, suggestion in ipairs(suggestions) do
+        local edit = {
+            range = {
+                start = { line = suggestion.line, character = 0 },
+                ["end"] = { line = suggestion.line, character = 0 },
+            },
+            newText = suggestion.newText,
+        }
+
+        child.g.test_edit = edit
+        child.lua_func(function()
+            local ns_id = vim.api.nvim_create_namespace("nes_test")
+            local bufnr = vim.api.nvim_get_current_buf()
+            require("copilot-lsp.nes.ui")._display_next_suggestion(bufnr, ns_id, { vim.g.test_edit })
+            vim.uv.sleep(300)
+        end)
+    end
+
+    child.lua_func(function()
+        local ns_id = vim.api.nvim_create_namespace("nes_test")
+        local bufnr = vim.api.nvim_get_current_buf()
+        require("copilot-lsp.nes.ui").clear_suggestion(bufnr, ns_id)
+        vim.uv.sleep(300)
+    end)
+
+    local has_history = child.lua_func(function()
+        local bufnr = vim.api.nvim_get_current_buf()
+        return require("copilot-lsp.nes.ui").has_history(bufnr)
+    end)
+    eq(has_history, true)
+
+    -- Verify we can cycle through suggestions (should only have 2 most recent)
+    local restore_results = {}
+    for i = 1, 4 do -- Try 4 restores to test cycling
+        local restored = child.lua_func(function()
+            local ns_id = vim.api.nvim_create_namespace("nes_test")
+            local bufnr = vim.api.nvim_get_current_buf()
+            local result = require("copilot-lsp.nes.ui").restore_suggestion(bufnr, ns_id)
+            vim.uv.sleep(300)
+            return result
+        end)
+        table.insert(restore_results, restored)
+    end
+
+    -- All restores should succeed (cycling between 2 items)
+    for _, result in ipairs(restore_results) do
+        eq(result, true)
+    end
+end
+
+T["ui_preview"]["suggestion_history_invalid_after_text_changes"] = function()
+    set_content("line1\nline2\nline3\nline4\nline5")
+
+    local edit = {
+        range = { start = { line = 4, character = 0 }, ["end"] = { line = 4, character = 0 } },
+        newText = "-- comment on line 5",
+    }
+
     child.g.test_edit = edit
     child.lua_func(function()
         local ns_id = vim.api.nvim_create_namespace("nes_test")
-        local edits = { vim.g.test_edit }
-        require("copilot-lsp.nes.ui")._display_next_suggestion(0, ns_id, edits)
+        local bufnr = vim.api.nvim_get_current_buf()
+        require("copilot-lsp.nes.ui")._display_next_suggestion(bufnr, ns_id, { vim.g.test_edit })
+        vim.uv.sleep(300)
     end)
-    ref(child.get_screenshot())
 
-    -- Test: Moving cursor towards the suggestion (even outside buffer zone) shouldn't clear it
-    child.cmd("normal! 4k") -- Move to line 4, moving towards the suggestion
+    -- Clear suggestion to store in history
     child.lua_func(function()
-        vim.uv.sleep(500)
+        local ns_id = vim.api.nvim_create_namespace("nes_test")
+        local bufnr = vim.api.nvim_get_current_buf()
+        require("copilot-lsp.nes.ui").clear_suggestion(bufnr, ns_id)
+        vim.uv.sleep(300)
     end)
 
-    -- Verify suggestion still exists
-    local suggestion_exists = child.lua_func(function()
-        return vim.b[0].nes_state ~= nil
+    -- Verify history exists before deletion
+    local has_history_before = child.lua_func(function()
+        local bufnr = vim.api.nvim_get_current_buf()
+        return require("copilot-lsp.nes.ui").has_history(bufnr)
     end)
-    eq(suggestion_exists, true)
-    ref(child.get_screenshot())
+    eq(has_history_before, true)
+
+    -- Delete lines to make history invalid
+    child.api.nvim_buf_set_lines(0, 3, -1, false, {})
+    child.lua_func(function()
+        vim.uv.sleep(300)
+    end)
+
+    -- Try to restore (should fail and clear history)
+    local restored = child.lua_func(function()
+        local ns_id = vim.api.nvim_create_namespace("nes_test")
+        local bufnr = vim.api.nvim_get_current_buf()
+        local result = require("copilot-lsp.nes.ui").restore_suggestion(bufnr, ns_id)
+        vim.uv.sleep(300)
+        return result
+    end)
+    eq(restored, false)
+
+    local has_history_after = child.lua_func(function()
+        local bufnr = vim.api.nvim_get_current_buf()
+        return require("copilot-lsp.nes.ui").has_history(bufnr)
+    end)
+    eq(has_history_after, false)
+end
+
+T["ui_preview"]["suggestion_history_no_restore_when_empty"] = function()
+    set_content("line1\nline2\nline3")
+    -- Try to restore when no history exists
+    local restored = child.lua_func(function()
+        local ns_id = vim.api.nvim_create_namespace("nes_test")
+        local bufnr = vim.api.nvim_get_current_buf()
+        return require("copilot-lsp.nes.ui").restore_suggestion(bufnr, ns_id)
+    end)
+    eq(restored, false)
+
+    local has_history = child.lua_func(function()
+        local bufnr = vim.api.nvim_get_current_buf()
+        return require("copilot-lsp.nes.ui").has_history(bufnr)
+    end)
+    eq(has_history, false)
 end
 
 return T

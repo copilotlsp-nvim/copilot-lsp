@@ -1,17 +1,35 @@
 local M = {}
 local config = require("copilot-lsp.config").config
 
+local buffer_histories = {}
+
 ---@param bufnr integer
 ---@param ns_id integer
 local function _dismiss_suggestion(bufnr, ns_id)
     pcall(vim.api.nvim_buf_clear_namespace, bufnr, ns_id, 0, -1)
 end
 
+---@private
+---@param bufnr integer
+---@param state copilotlsp.InlineEdit
+local function _store_suggestion_history(bufnr, state)
+    if not buffer_histories[bufnr] then
+        buffer_histories[bufnr] = vim.ringbuf(2)
+    end
+    buffer_histories[bufnr]:push(vim.deepcopy(state))
+end
+
+---@private
+---@param bufnr integer
+local function _clear_suggestion_history(bufnr)
+    buffer_histories[bufnr] = nil
+    vim.b[bufnr].copilotlsp_nes_restore_index = nil
+end
+
 ---@param bufnr? integer
 ---@param ns_id integer
 function M.clear_suggestion(bufnr, ns_id)
     bufnr = bufnr and bufnr > 0 and bufnr or vim.api.nvim_get_current_buf()
-    -- Validate buffer exists before accessing buffer-scoped variables
     if not vim.api.nvim_buf_is_valid(bufnr) then
         return
     end
@@ -21,16 +39,55 @@ function M.clear_suggestion(bufnr, ns_id)
     end
     _dismiss_suggestion(bufnr, ns_id)
     ---@type copilotlsp.InlineEdit
-    local state = vim.b[bufnr].nes_state
-    if not state then
-        return
-    end
-
-    -- Clear buffer variables
     vim.b[bufnr].nes_state = nil
     vim.b[bufnr].copilotlsp_nes_cursor_moves = nil
     vim.b[bufnr].copilotlsp_nes_last_line = nil
     vim.b[bufnr].copilotlsp_nes_last_col = nil
+end
+
+--- Check if there's history for a buffer
+---@param bufnr integer
+---@return boolean
+function M.has_history(bufnr)
+    local history = buffer_histories[bufnr]
+    if not history then
+        return false
+    end
+    -- Check if ringbuf has any items
+    local item = history:peek()
+    return item ~= nil
+end
+
+---@param bufnr? integer
+---@param ns_id integer
+---@return boolean -- true if suggestion was restored, false otherwise
+function M.restore_suggestion(bufnr, ns_id)
+    bufnr = bufnr and bufnr > 0 and bufnr or vim.api.nvim_get_current_buf()
+    if not vim.api.nvim_buf_is_valid(bufnr) then
+        return false
+    end
+    local history = buffer_histories[bufnr]
+    if not history then
+        return false
+    end
+    local suggestion = history:pop()
+    if not suggestion then
+        return false
+    end
+    -- Validate suggestion is still applicable
+    local start_line = suggestion.range.start.line
+    if start_line >= vim.api.nvim_buf_line_count(bufnr) then
+        _clear_suggestion_history(bufnr)
+        return false
+    end
+    _dismiss_suggestion(bufnr, ns_id)
+    local preview = M._calculate_preview(bufnr, suggestion)
+    M._display_preview(bufnr, ns_id, preview)
+    vim.b[bufnr].nes_state = suggestion
+    vim.b[bufnr].copilotlsp_nes_namespace_id = ns_id
+    vim.b[bufnr].copilotlsp_nes_cursor_moves = 1
+    history:push(suggestion)
+    return true
 end
 
 ---@private
@@ -166,10 +223,11 @@ end
 ---@param ns_id integer
 ---@param edits copilotlsp.InlineEdit[]
 function M._display_next_suggestion(bufnr, ns_id, edits)
-    M.clear_suggestion(bufnr, ns_id)
     if not edits or #edits == 0 then
         return
     end
+    -- Clear current suggestion first
+    M.clear_suggestion(bufnr, ns_id)
 
     local suggestion = edits[1]
     local preview = M._calculate_preview(bufnr, suggestion)
@@ -178,6 +236,10 @@ function M._display_next_suggestion(bufnr, ns_id, edits)
     vim.b[bufnr].nes_state = suggestion
     vim.b[bufnr].copilotlsp_nes_namespace_id = ns_id
     vim.b[bufnr].copilotlsp_nes_cursor_moves = 1
+
+    -- Store this suggestion in history immediately after displaying it
+    _store_suggestion_history(bufnr, suggestion)
+    vim.b[bufnr].copilotlsp_nes_restore_index = 0
 
     vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
         buffer = bufnr,
@@ -275,5 +337,12 @@ function M._display_next_suggestion(bufnr, ns_id, edits)
         end,
     })
 end
+
+-- Clean up history when buffer is deleted
+vim.api.nvim_create_autocmd("BufDelete", {
+    callback = function(ev)
+        buffer_histories[ev.buf] = nil
+    end,
+})
 
 return M
