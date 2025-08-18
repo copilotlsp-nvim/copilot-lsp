@@ -23,11 +23,7 @@ return {
             enabled = true,
         },
     },
-    handlers = setmetatable({}, {
-        __index = function(_, method)
-            return require("copilot-lsp.handlers")[method]
-        end,
-    }),
+    handlers = require("copilot-lsp.handlers"),
     root_dir = vim.uv.cwd(),
     on_init = function(client)
         local au = vim.api.nvim_create_augroup("copilotlsp.init", { clear = true })
