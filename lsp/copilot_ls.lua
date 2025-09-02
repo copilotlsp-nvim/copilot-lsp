@@ -41,29 +41,6 @@ return {
         --     inline_completion.request_inline_completion(1)
         -- end)
 
-        --NOTE: NES Completions
-        local debounced_request = require("copilot-lsp.util").debounce(
-            require("copilot-lsp.nes").request_nes,
-            vim.g.copilot_nes_debounce or 500
-        )
-        vim.api.nvim_create_autocmd({ "TextChangedI", "TextChanged" }, {
-            callback = function()
-                debounced_request(client)
-            end,
-            group = au,
-        })
-
-        --NOTE: didFocus
-        vim.api.nvim_create_autocmd("BufEnter", {
-            callback = function()
-                local td_params = vim.lsp.util.make_text_document_params()
-                client:notify("textDocument/didFocus", {
-                    textDocument = {
-                        uri = td_params.uri,
-                    },
-                })
-            end,
-            group = au,
-        })
+        require("copilot-lsp.nes").lsp_on_init(client, au)
     end,
 }
