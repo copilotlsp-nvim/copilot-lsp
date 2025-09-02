@@ -13,6 +13,8 @@ end
 ---@param delay integer
 function M.debounce(fn, delay)
     local timer = vim.uv.new_timer()
+    assert(timer)
+
     return function(...)
         local argv = vim.F.pack_len(...)
         timer:start(delay, 0, function()
