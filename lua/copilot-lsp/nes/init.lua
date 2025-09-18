@@ -1,6 +1,7 @@
 local errs = require("copilot-lsp.errors")
 local nes_ui = require("copilot-lsp.nes.ui")
 local utils = require("copilot-lsp.util")
+local config = require("copilot-lsp.config").config
 
 local M = {}
 
@@ -102,6 +103,7 @@ end
 
 --- This function applies the pending nes edit to the current buffer and then clears the marks for the pending
 --- suggestion
+--- If there is no edit and auto_trigger is false, then a new suggestion will be requested
 ---@param bufnr? integer
 ---@return boolean --if the nes was applied
 function M.apply_pending_nes(bufnr)
@@ -110,7 +112,11 @@ function M.apply_pending_nes(bufnr)
     ---@type copilotlsp.InlineEdit
     local state = vim.b[bufnr].nes_state
     if not state then
-        return false
+        if not config.auto_trigger then
+            M.request_nes()
+        else
+            return false
+        end
     end
     vim.schedule(function()
         utils.apply_inline_edit(state)
@@ -142,14 +148,18 @@ end
 ---@param au integer
 function M.lsp_on_init(client, au)
     --NOTE: NES Completions
-    local debounced_request =
-        require("copilot-lsp.util").debounce(require("copilot-lsp.nes").request_nes, vim.g.copilot_nes_debounce or 500)
-    vim.api.nvim_create_autocmd({ "TextChangedI", "TextChanged" }, {
-        callback = function()
-            debounced_request(client)
-        end,
-        group = au,
-    })
+    if config.nes.auto_trigger then
+        local debounced_request = require("copilot-lsp.util").debounce(
+            require("copilot-lsp.nes").request_nes,
+            vim.g.copilot_nes_debounce or 500
+        )
+        vim.api.nvim_create_autocmd({ "TextChangedI", "TextChanged" }, {
+            callback = function()
+                debounced_request(client)
+            end,
+            group = au,
+        })
+    end
 
     --NOTE: didFocus
     vim.api.nvim_create_autocmd("BufEnter", {

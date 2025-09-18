@@ -72,6 +72,7 @@ You don’t need to configure anything, but you can customize the defaults:
 require('copilot-lsp').setup({
   nes = {
     move_count_threshold = 3,   -- Clear after 3 cursor movements
+    auto_trigger = true,   -- Automatically trigger suggestions, if false then "nes_apply_pending_nes()" will request a new suggestion if none are visible
   }
 })
 ```
