@@ -138,4 +138,31 @@ function M.clear()
     return false
 end
 
+---@param client vim.lsp.Client
+---@param au integer
+function M.lsp_on_init(client, au)
+    --NOTE: NES Completions
+    local debounced_request =
+        require("copilot-lsp.util").debounce(require("copilot-lsp.nes").request_nes, vim.g.copilot_nes_debounce or 500)
+    vim.api.nvim_create_autocmd({ "TextChangedI", "TextChanged" }, {
+        callback = function()
+            debounced_request(client)
+        end,
+        group = au,
+    })
+
+    --NOTE: didFocus
+    vim.api.nvim_create_autocmd("BufEnter", {
+        callback = function()
+            local td_params = vim.lsp.util.make_text_document_params()
+            client:notify("textDocument/didFocus", {
+                textDocument = {
+                    uri = td_params.uri,
+                },
+            })
+        end,
+        group = au,
+    })
+end
+
 return M

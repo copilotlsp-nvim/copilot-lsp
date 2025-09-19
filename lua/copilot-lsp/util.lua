@@ -13,6 +13,8 @@ end
 ---@param delay integer
 function M.debounce(fn, delay)
     local timer = vim.uv.new_timer()
+    assert(timer)
+
     return function(...)
         local argv = vim.F.pack_len(...)
         timer:start(delay, 0, function()
@@ -201,6 +203,12 @@ function M.hl_text_to_virt_lines(text, lang)
     end
 
     return virt_lines
+end
+
+function M.set_hl()
+    vim.api.nvim_set_hl(0, "CopilotLspNesAdd", { link = "DiffAdd", default = true })
+    vim.api.nvim_set_hl(0, "CopilotLspNesDelete", { link = "DiffDelete", default = true })
+    vim.api.nvim_set_hl(0, "CopilotLspNesApply", { link = "DiffText", default = true })
 end
 
 return M
