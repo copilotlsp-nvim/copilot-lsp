@@ -1,9 +1,13 @@
 local M = {}
+---@param bufnr? integer
 ---@param edit copilotlsp.InlineEdit
-function M.apply_inline_edit(edit)
-    local bufnr = vim.uri_to_bufnr(edit.textDocument.uri)
+function M.apply_inline_edit(bufnr, edit)
+    bufnr = bufnr and bufnr > 0 and bufnr or vim.api.nvim_get_current_buf()
 
-    ---@diagnostic disable-next-line: assign-type-mismatch
+    if not vim.api.nvim_buf_is_valid(bufnr) then
+        return
+    end
+
     vim.lsp.util.apply_text_edits({ edit }, bufnr, "utf-16")
 end
 

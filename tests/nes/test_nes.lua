@@ -131,4 +131,44 @@ T["nes"]["highlights replacement"] = function()
     end)
     ref(child.get_screenshot())
 end
+
+T["nes"]["apply_pending_nes on empty buffer"] = function()
+    child.lua_func(function()
+        local copilot = vim.lsp.get_clients()[1]
+        require("copilot-lsp.nes").request_nes(copilot)
+    end)
+    vim.uv.sleep(500)
+    child.lua_func(function()
+        local _ = require("copilot-lsp.nes").apply_pending_nes()
+    end)
+    vim.uv.sleep(500)
+    ref(child.get_screenshot())
+end
+
+T["nes"]["walk_cursor_end_edit on empty buffer"] = function()
+    child.lua_func(function()
+        local copilot = vim.lsp.get_clients()[1]
+        require("copilot-lsp.nes").request_nes(copilot)
+    end)
+    vim.uv.sleep(500)
+    child.lua_func(function()
+        local _ = require("copilot-lsp.nes").apply_pending_nes() and require("copilot-lsp.nes").walk_cursor_end_edit()
+    end)
+    vim.uv.sleep(500)
+    ref(child.get_screenshot())
+end
+
+T["nes"]["walk_cursor_start_edit on empty buffer"] = function()
+    child.lua_func(function()
+        local copilot = vim.lsp.get_clients()[1]
+        require("copilot-lsp.nes").request_nes(copilot)
+    end)
+    vim.uv.sleep(500)
+    child.lua_func(function()
+        local _ = require("copilot-lsp.nes").apply_pending_nes() and require("copilot-lsp.nes").walk_cursor_start_edit()
+    end)
+    vim.uv.sleep(500)
+    ref(child.get_screenshot())
+end
+
 return T
