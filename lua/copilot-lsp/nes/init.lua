@@ -55,15 +55,24 @@ function M.walk_cursor_start_edit(bufnr)
     local cursor_row, _ = unpack(vim.api.nvim_win_get_cursor(0))
     if cursor_row - 1 ~= state.range.start.line then
         vim.b[bufnr].nes_jump = true
-        local start_line = state.range.start.line + 1
-        local start_col = state.range.start.character
-        vim.schedule(function()
-            -- Since we are async, we check to see if the buffer has changed
-            if vim.api.nvim_get_current_buf() ~= bufnr then
-                return
-            end
+        -- Since we are async, we check to see if the buffer has changed
+        if vim.api.nvim_get_current_buf() ~= vim.uri_to_bufnr(state.textDocument.uri) then
+            return false
+        end
 
-            vim.api.nvim_win_set_cursor(0, { start_line, start_col })
+        ---@type lsp.Location
+        local jump_loc_before = {
+            uri = state.textDocument.uri,
+            range = {
+                start = state.range["start"],
+                ["end"] = state.range["start"],
+            },
+        }
+
+        vim.schedule(function()
+            local _ = utils.is_named_buffer(state.textDocument.uri)
+                    and vim.lsp.util.show_document(jump_loc_before, "utf-16", { focus = true })
+                or vim.api.nvim_win_set_cursor(0, { state.range.start.line + 1, state.range.start.character })
         end)
         return true
     else
@@ -83,17 +92,24 @@ function M.walk_cursor_end_edit(bufnr)
     if not state then
         return false
     end
-
+    ---@type lsp.Location
+    local jump_loc_after = {
+        uri = state.textDocument.uri,
+        range = {
+            start = state.range["end"],
+            ["end"] = state.range["end"],
+        },
+    }
     --NOTE: If last line is deletion, then this may be outside of the buffer
-    local new_cursor_line = state.range["end"].line + 1
-    local last_col = state.range["end"].character
     vim.schedule(function()
         -- Since we are async, we check to see if the buffer has changed
         if vim.api.nvim_get_current_buf() ~= bufnr then
             return
         end
 
-        pcall(vim.api.nvim_win_set_cursor, 0, { new_cursor_line, last_col })
+        local _ = utils.is_named_buffer(state.textDocument.uri)
+                and pcall(vim.lsp.util.show_document, jump_loc_after, "utf-16", { focus = true })
+            or pcall(vim.api.nvim_win_set_cursor, 0, { state.range["end"].line + 1, state.range["end"].character })
     end)
     return true
 end
@@ -111,7 +127,7 @@ function M.apply_pending_nes(bufnr)
         return false
     end
     vim.schedule(function()
-        utils.apply_inline_edit(bufnr, state)
+        utils.apply_inline_edit(state)
         vim.b[bufnr].nes_jump = false
         nes_ui.clear_suggestion(bufnr, nes_ns)
     end)

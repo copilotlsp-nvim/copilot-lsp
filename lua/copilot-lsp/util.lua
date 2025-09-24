@@ -1,8 +1,8 @@
 local M = {}
----@param bufnr? integer
 ---@param edit copilotlsp.InlineEdit
-function M.apply_inline_edit(bufnr, edit)
-    bufnr = bufnr and bufnr > 0 and bufnr or vim.api.nvim_get_current_buf()
+function M.apply_inline_edit(edit)
+    local bufnr = M.is_named_buffer(edit.textDocument.uri) and vim.uri_to_bufnr(edit.textDocument.uri)
+        or vim.api.nvim_get_current_buf()
 
     if not vim.api.nvim_buf_is_valid(bufnr) then
         return
@@ -213,6 +213,13 @@ function M.set_hl()
     vim.api.nvim_set_hl(0, "CopilotLspNesAdd", { link = "DiffAdd", default = true })
     vim.api.nvim_set_hl(0, "CopilotLspNesDelete", { link = "DiffDelete", default = true })
     vim.api.nvim_set_hl(0, "CopilotLspNesApply", { link = "DiffText", default = true })
+end
+
+--- check if buffer uri is a named buffer
+---@param uri string
+---@return boolean
+function M.is_named_buffer(uri)
+    return vim.uri_to_fname(uri) ~= "/"
 end
 
 return M
