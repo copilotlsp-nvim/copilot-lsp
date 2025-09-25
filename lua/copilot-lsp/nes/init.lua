@@ -70,9 +70,11 @@ function M.walk_cursor_start_edit(bufnr)
         }
 
         vim.schedule(function()
-            local _ = utils.is_named_buffer(state.textDocument.uri)
-                    and vim.lsp.util.show_document(jump_loc_before, "utf-16", { focus = true })
-                or vim.api.nvim_win_set_cursor(0, { state.range.start.line + 1, state.range.start.character })
+            if utils.is_named_buffer(state.textDocument.uri) then
+                vim.lsp.util.show_document(jump_loc_before, "utf-16", { focus = true })
+            else
+                vim.api.nvim_win_set_cursor(0, { state.range.start.line + 1, state.range.start.character })
+            end
         end)
         return true
     else
@@ -107,9 +109,11 @@ function M.walk_cursor_end_edit(bufnr)
             return
         end
 
-        local _ = utils.is_named_buffer(state.textDocument.uri)
-                and pcall(vim.lsp.util.show_document, jump_loc_after, "utf-16", { focus = true })
-            or pcall(vim.api.nvim_win_set_cursor, 0, { state.range["end"].line + 1, state.range["end"].character })
+        if utils.is_named_buffer(state.textDocument.uri) then
+            pcall(vim.lsp.util.show_document, jump_loc_after, "utf-16", { focus = true })
+        else
+            pcall(vim.api.nvim_win_set_cursor, 0, { state.range["end"].line + 1, state.range["end"].character })
+        end
     end)
     return true
 end
