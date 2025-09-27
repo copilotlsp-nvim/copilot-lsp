@@ -83,10 +83,25 @@ local function getNesResponse(td)
                 },
             },
         },
+        [""] = {
+            edits = {
+                {
+                    command = { title = "mock", command = "mock" },
+                    range = {
+                        start = { line = 0, character = 0 },
+                        ["end"] = { line = 1, character = 11 },
+                    },
+                    textDocument = td,
+                    text = "new line one\nnew line two",
+                    ---@diagnostic disable-next-line: assign-type-mismatch
+                    newText = nil,
+                },
+            },
+        },
     }
     local response = responses[filename]
 
-    assert(response, "unhandled doc")
+    assert(response, "unhandled doc: " .. filename)
     return response
 end
 

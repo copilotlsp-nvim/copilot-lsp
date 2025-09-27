@@ -55,6 +55,11 @@ function M.walk_cursor_start_edit(bufnr)
     local cursor_row, _ = unpack(vim.api.nvim_win_get_cursor(0))
     if cursor_row - 1 ~= state.range.start.line then
         vim.b[bufnr].nes_jump = true
+        -- Since we are async, we check to see if the buffer has changed
+        if vim.api.nvim_get_current_buf() ~= vim.uri_to_bufnr(state.textDocument.uri) then
+            return false
+        end
+
         ---@type lsp.Location
         local jump_loc_before = {
             uri = state.textDocument.uri,
@@ -63,8 +68,13 @@ function M.walk_cursor_start_edit(bufnr)
                 ["end"] = state.range["start"],
             },
         }
+
         vim.schedule(function()
-            vim.lsp.util.show_document(jump_loc_before, "utf-16", { focus = true })
+            if utils.is_named_buffer(state.textDocument.uri) then
+                vim.lsp.util.show_document(jump_loc_before, "utf-16", { focus = true })
+            else
+                vim.api.nvim_win_set_cursor(0, { state.range.start.line + 1, state.range.start.character })
+            end
         end)
         return true
     else
@@ -84,7 +94,6 @@ function M.walk_cursor_end_edit(bufnr)
     if not state then
         return false
     end
-
     ---@type lsp.Location
     local jump_loc_after = {
         uri = state.textDocument.uri,
@@ -95,7 +104,16 @@ function M.walk_cursor_end_edit(bufnr)
     }
     --NOTE: If last line is deletion, then this may be outside of the buffer
     vim.schedule(function()
-        pcall(vim.lsp.util.show_document, jump_loc_after, "utf-16", { focus = true })
+        -- Since we are async, we check to see if the buffer has changed
+        if vim.api.nvim_get_current_buf() ~= bufnr then
+            return
+        end
+
+        if utils.is_named_buffer(state.textDocument.uri) then
+            pcall(vim.lsp.util.show_document, jump_loc_after, "utf-16", { focus = true })
+        else
+            pcall(vim.api.nvim_win_set_cursor, 0, { state.range["end"].line + 1, state.range["end"].character })
+        end
     end)
     return true
 end
