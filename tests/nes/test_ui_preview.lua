@@ -354,4 +354,45 @@ T["ui_preview"]["suggestion_preserves_on_movement_towards"] = function()
     ref(child.get_screenshot())
 end
 
+T["ui_preview"]["deletions before response"] = function()
+    set_content("loooooooooooooooong")
+    ref(child.get_screenshot())
+
+    -- Position cursor at end of line 0
+    child.cmd("normal! gg$")
+
+    -- Create a suggestion at line 0
+    local edit = {
+        range = {
+            start = { line = 0, character = 0 },
+            ["end"] = { line = 0, character = 19 },
+        },
+        newText = "long",
+    }
+
+    child.cmd("normal! xxxxxxxxxxxxx") -- Delete text
+
+    -- Display suggestion
+    child.g.test_edit = edit
+    child.lua_func(function()
+        local ns_id = vim.api.nvim_create_namespace("nes_test")
+        local edits = { vim.g.test_edit }
+        require("copilot-lsp.nes.ui")._display_next_suggestion(0, ns_id, edits)
+    end)
+    ref(child.get_screenshot())
+
+    -- Test: Moving cursor towards the suggestion (even outside buffer zone) shouldn't clear it
+    child.cmd("normal! 4k") -- Move to line 4, moving towards the suggestion
+    child.lua_func(function()
+        vim.uv.sleep(500)
+    end)
+
+    -- Verify suggestion still exists
+    local suggestion_exists = child.lua_func(function()
+        return vim.b[0].nes_state ~= nil
+    end)
+    eq(suggestion_exists, true)
+    ref(child.get_screenshot())
+end
+
 return T
