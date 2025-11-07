@@ -221,6 +221,29 @@ local cases = {
         },
         final = "hijklmn",
     },
+    ["insertion only passed buffer end"] = {
+        content = "function greetName(name: string) : string {",
+        edit = {
+            range = {
+                start = {
+                    line = 2,
+                    character = 0,
+                },
+                ["end"] = {
+                    line = 2,
+                    character = 0,
+                },
+            },
+            newText = "\treturn `Hello, ${name}!`;\n}\n",
+        },
+        preview = {
+            lines_insertion = {
+                line = 2,
+                text = "\treturn `Hello, ${name}!`;\n}\n",
+            },
+        },
+        final = "function greetName(name: string) : string {\n\treturn `Hello, ${name}!`;\n}\n",
+    },
 }
 
 local function set_content(content)

@@ -166,8 +166,8 @@ function M._display_preview(bufnr, ns_id, preview)
         local virt_lines =
             require("copilot-lsp.util").hl_text_to_virt_lines(lines_insertion.text, vim.bo[bufnr].filetype)
         local total_lines = vim.api.nvim_buf_line_count(bufnr)
-        if lines_insertion.line == total_lines then
-            lines_insertion.line = total_lines - 1
+        if lines_insertion.line >= total_lines then
+            lines_insertion.line = math.max(total_lines - 1, 0)
         end
         vim.api.nvim_buf_set_extmark(bufnr, ns_id, lines_insertion.line, 0, {
             virt_lines = virt_lines,
