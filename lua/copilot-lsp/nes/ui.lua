@@ -82,6 +82,15 @@ function M._calculate_preview(bufnr, edit)
     end
 
     if is_insertion and num_new_lines > 1 then
+        if num_old_lines == 0 then
+            return {
+                lines_insertion = {
+                    text = text,
+                    line = start_line,
+                },
+            }
+        end
+
         if start_char == #old_lines[1] and new_lines[1] == "" then
             -- insert lines after the start line
             return {
@@ -157,9 +166,14 @@ function M._display_preview(bufnr, ns_id, preview)
     if lines_insertion then
         local virt_lines =
             require("copilot-lsp.util").hl_text_to_virt_lines(lines_insertion.text, vim.bo[bufnr].filetype)
+        local total_lines = vim.api.nvim_buf_line_count(bufnr)
+        if lines_insertion.line == total_lines then
+            lines_insertion.line = total_lines - 1
+        end
         vim.api.nvim_buf_set_extmark(bufnr, ns_id, lines_insertion.line, 0, {
             virt_lines = virt_lines,
             virt_lines_above = lines_insertion.above,
+            strict = false,
         })
     end
 end
