@@ -144,7 +144,6 @@ function M._display_preview(bufnr, ns_id, preview)
         local range = preview.deletion.range
         local existing_line = vim.api.nvim_buf_get_lines(bufnr, range["end"].line, range["end"].line + 1, false)[1]
             or ""
-        vim.api.nvim_buf_get_lines(bufnr, range.start.line, range["end"].line + 1, false)
         vim.api.nvim_buf_set_extmark(bufnr, ns_id, range.start.line, range.start.character, {
             hl_group = "CopilotLspNesDelete",
             end_row = range["end"].line,

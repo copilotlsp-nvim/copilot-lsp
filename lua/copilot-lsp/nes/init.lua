@@ -55,12 +55,12 @@ function M.walk_cursor_start_edit(bufnr)
     local total_lines = vim.api.nvim_buf_line_count(bufnr)
     local cursor_row, _ = unpack(vim.api.nvim_win_get_cursor(0))
     if state.range.start.line >= total_lines then
-        -- If the start line is beyond the end of the buffer then we cant walk there
+        -- If the start line is beyond the end of the buffer then we can't walk there
         -- if we are at the end of the buffer, we've walked as we can
         if cursor_row == total_lines then
             return false
         end
-        -- if not walk to the end of the buffer instead
+        -- if not, walk to the end of the buffer instead
         vim.lsp.util.show_document({
             uri = state.textDocument.uri,
             range = {
