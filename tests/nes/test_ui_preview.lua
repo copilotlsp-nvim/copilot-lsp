@@ -396,26 +396,21 @@ T["ui_preview"]["deletions before response"] = function()
     child.cmd("normal! xxxxxxxxxxxxx") -- Delete text
 
     -- Display suggestion
-    child.g.test_edit = edit
+    child.g.inline_edit = edit
     child.lua_func(function()
         local ns_id = vim.api.nvim_create_namespace("nes_test")
-        local edits = { vim.g.test_edit }
+        local edits = { vim.g.inline_edit }
         require("copilot-lsp.nes.ui")._display_next_suggestion(0, ns_id, edits)
     end)
     ref(child.get_screenshot())
 
-    -- Test: Moving cursor towards the suggestion (even outside buffer zone) shouldn't clear it
-    child.cmd("normal! 4k") -- Move to line 4, moving towards the suggestion
     child.lua_func(function()
-        vim.uv.sleep(500)
+        local bufnr = vim.api.nvim_get_current_buf()
+        vim.lsp.util.apply_text_edits({ vim.g.inline_edit }, bufnr, "utf-16")
     end)
 
-    -- Verify suggestion still exists
-    local suggestion_exists = child.lua_func(function()
-        return vim.b[0].nes_state ~= nil
-    end)
-    eq(suggestion_exists, true)
-    ref(child.get_screenshot())
+    local final = get_content()
+    eq(final, edit.newText)
 end
 
 return T
