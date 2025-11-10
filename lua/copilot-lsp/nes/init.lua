@@ -1,6 +1,7 @@
 local errs = require("copilot-lsp.errors")
 local nes_ui = require("copilot-lsp.nes.ui")
 local utils = require("copilot-lsp.util")
+local me = require("copilot-lsp.mimimal_edits")
 
 local M = {}
 
@@ -21,6 +22,25 @@ local function handle_nes_response(err, result, ctx)
     for _, edit in ipairs(result.edits) do
         --- Convert to textEdit fields
         edit.newText = edit.text
+    end
+    if #result.edits == 1 then
+        ---@type copilotlsp.InlineEdit[]
+        local min_edits = {}
+
+        -- minimise the edits
+        local source_lines = vim.api.nvim_buf_get_lines(ctx.bufnr, 0, -1, false)
+        local min_te = me.compute_minimal_edits(source_lines, result.edits[1])
+        for _, edit in ipairs(min_te) do
+            local new_edit = {
+                range = edit.range,
+                newText = edit.newText,
+                command = result.edits[1].command,
+                textDocument = result.edits[1].textDocument,
+            }
+            table.insert(min_edits, new_edit)
+        end
+
+        result.edits = min_edits
     end
     nes_ui._display_next_suggestion(ctx.bufnr, nes_ns, result.edits)
 end
