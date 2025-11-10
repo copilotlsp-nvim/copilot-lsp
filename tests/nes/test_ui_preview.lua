@@ -221,6 +221,29 @@ local cases = {
         },
         final = "hijklmn",
     },
+    ["insertion only passed buffer end"] = {
+        content = "function greetName(name: string) : string {",
+        edit = {
+            range = {
+                start = {
+                    line = 2,
+                    character = 0,
+                },
+                ["end"] = {
+                    line = 2,
+                    character = 0,
+                },
+            },
+            newText = "\treturn `Hello, ${name}!`;\n}\n",
+        },
+        preview = {
+            lines_insertion = {
+                line = 2,
+                text = "\treturn `Hello, ${name}!`;\n}\n",
+            },
+        },
+        final = "function greetName(name: string) : string {\n\treturn `Hello, ${name}!`;\n}\n",
+    },
 }
 
 local function set_content(content)
@@ -352,6 +375,42 @@ T["ui_preview"]["suggestion_preserves_on_movement_towards"] = function()
     end)
     eq(suggestion_exists, true)
     ref(child.get_screenshot())
+end
+
+T["ui_preview"]["deletions before response"] = function()
+    set_content("loooooooooooooooong")
+    ref(child.get_screenshot())
+
+    -- Position cursor at end of line 0
+    child.cmd("normal! gg$")
+
+    -- Create a suggestion at line 0
+    local edit = {
+        range = {
+            start = { line = 0, character = 0 },
+            ["end"] = { line = 0, character = 19 },
+        },
+        newText = "long",
+    }
+
+    child.cmd("normal! xxxxxxxxxxxxx") -- Delete text
+
+    -- Display suggestion
+    child.g.inline_edit = edit
+    child.lua_func(function()
+        local ns_id = vim.api.nvim_create_namespace("nes_test")
+        local edits = { vim.g.inline_edit }
+        require("copilot-lsp.nes.ui")._display_next_suggestion(0, ns_id, edits)
+    end)
+    ref(child.get_screenshot())
+
+    child.lua_func(function()
+        local bufnr = vim.api.nvim_get_current_buf()
+        vim.lsp.util.apply_text_edits({ vim.g.inline_edit }, bufnr, "utf-16")
+    end)
+
+    local final = get_content()
+    eq(final, edit.newText)
 end
 
 return T
