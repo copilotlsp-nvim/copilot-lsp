@@ -181,10 +181,11 @@ end
 ---@param bufnr integer
 ---@param ns_id integer
 ---@param edits copilotlsp.InlineEdit[]
+---@return boolean
 function M._display_next_suggestion(bufnr, ns_id, edits)
     M.clear_suggestion(bufnr, ns_id)
     if not edits or #edits == 0 then
-        return
+        return false
     end
 
     local suggestion = edits[1]
@@ -290,6 +291,7 @@ function M._display_next_suggestion(bufnr, ns_id, edits)
             return false -- Keep the autocmd
         end,
     })
+    return true
 end
 
 return M

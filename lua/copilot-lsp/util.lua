@@ -100,7 +100,6 @@ local function merge_captures(captures)
         then
             local prev_hl = type(prev.hl) == "table" and prev.hl or { prev.hl }
             local curr_hl = type(curr.hl) == "table" and curr.hl or { curr.hl }
-            ---@diagnostic disable-next-line: param-type-mismatch
             vim.list_extend(prev_hl, curr_hl)
             curr.hl = prev_hl
         else
