@@ -244,6 +244,41 @@ local cases = {
         },
         final = "function greetName(name: string) : string {\n\treturn `Hello, ${name}!`;\n}\n",
     },
+    ["UTF-8 character truncation in string splitting"] = {
+        content = "'一二三四五六七八九十': '',\n'一二三四五六七八九十': '',\n'一二三四五六七八九十': ''\n",
+        edit = {
+            range = {
+                start = {
+                    line = 1,
+                    character = 0,
+                },
+                ["end"] = {
+                    line = 1,
+                    character = 37,
+                },
+            },
+            newText = "'一二三四五六七八九十': '12345678910',",
+        },
+        preview = {
+            deletion = {
+                range = {
+                    ["end"] = {
+                        character = 37,
+                        line = 1,
+                    },
+                    start = {
+                        character = 0,
+                        line = 1,
+                    },
+                },
+            },
+            lines_insertion = {
+                line = 1,
+                text = "'一二三四五六七八九十': '12345678910',",
+            },
+        },
+        final = "'一二三四五六七八九十': '',\n'一二三四五六七八九十': '12345678910',\n'一二三四五六七八九十': ''\n",
+    },
 }
 
 local function set_content(content)

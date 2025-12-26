@@ -114,11 +114,17 @@ function M._calculate_preview(bufnr, edit)
     end
 
     -- insert lines in the middle
-    local prefix = old_lines[1]:sub(1, start_char)
-    local suffix = old_lines[num_old_lines]:sub(end_char + 1)
+    local prefix = vim.fn.strcharpart(old_lines[1], 0, start_char)
+
+    local last_line = old_lines[num_old_lines]
+    local total_chars = vim.fn.strchars(last_line)
+    local suffix_len = total_chars - end_char
+    local suffix = vim.fn.strcharpart(last_line, end_char, suffix_len)
+
     local new_lines_extend = vim.deepcopy(new_lines)
     new_lines_extend[1] = prefix .. new_lines_extend[1]
     new_lines_extend[num_new_lines] = new_lines_extend[num_new_lines] .. suffix
+
     local insertion = table.concat(new_lines_extend, "\n")
 
     return {
