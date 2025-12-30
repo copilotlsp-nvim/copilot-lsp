@@ -11,7 +11,7 @@ local nes_ns = vim.api.nvim_create_namespace("copilotlsp.nes")
 ---@param ctx lsp.HandlerContext
 local function handle_nes_response(err, result, ctx)
     if err then
-        -- vim.notify(err.message)
+        vim.notify("[copilot-lsp] " .. err.message)
         return
     end
     -- Validate buffer still exists before processing response
@@ -22,21 +22,32 @@ local function handle_nes_response(err, result, ctx)
         --- Convert to textEdit fields
         edit.newText = edit.text
     end
-    nes_ui._display_next_suggestion(ctx.bufnr, nes_ns, result.edits)
+    if nes_ui._display_next_suggestion(ctx.bufnr, nes_ns, result.edits) then
+        local client = vim.lsp.get_client_by_id(ctx.client_id)
+        assert(client, errs.ErrNotStarted)
+        client:notify("textDocument/didShowInlineEdit", {
+            item = {
+                command = result.edits[1].command,
+            },
+        })
+    end
 end
 
 --- Requests the NextEditSuggestion from the current cursor position
 ---@param copilot_lss? vim.lsp.Client|string
 function M.request_nes(copilot_lss)
-    local pos_params = vim.lsp.util.make_position_params(0, "utf-16")
-    local version = vim.lsp.util.buf_versions[vim.api.nvim_get_current_buf()]
+    local bufnr = vim.api.nvim_get_current_buf()
     if type(copilot_lss) == "string" then
         copilot_lss = vim.lsp.get_clients({ name = copilot_lss })[1]
     end
     assert(copilot_lss, errs.ErrNotStarted)
-    ---@diagnostic disable-next-line: inject-field
-    pos_params.textDocument.version = version
-    copilot_lss:request("textDocument/copilotInlineEdit", pos_params, handle_nes_response)
+    if copilot_lss.attached_buffers[bufnr] then
+        local version = vim.lsp.util.buf_versions[bufnr]
+        local pos_params = vim.lsp.util.make_position_params(0, "utf-16")
+        ---@diagnostic disable-next-line: inject-field
+        pos_params.textDocument.version = version
+        copilot_lss:request("textDocument/copilotInlineEdit", pos_params, handle_nes_response)
+    end
 end
 
 --- Walks the cursor to the start of the edit.
