@@ -166,6 +166,19 @@ function M.apply_pending_nes(bufnr)
     return true
 end
 
+function M.restore_last_nes(bufnr)
+    bufnr = bufnr and bufnr > 0 and bufnr or vim.api.nvim_get_current_buf()
+    ---@type copilotlsp.InlineEdit
+    local state = vim.b[bufnr].nes_state or vim.b[bufnr].last_nes_state
+    if
+        state
+        and state.textDocument.uri == vim.uri_from_bufnr(bufnr)
+        and state.textDocument.version == vim.lsp.util.buf_versions[bufnr]
+    then
+        nes_ui._display_next_suggestion(bufnr, nes_ns, { state })
+    end
+end
+
 ---@param bufnr? integer
 function M.clear_suggestion(bufnr)
     bufnr = bufnr and bufnr > 0 and bufnr or vim.api.nvim_get_current_buf()
@@ -177,8 +190,7 @@ end
 function M.clear()
     local buf = vim.api.nvim_get_current_buf()
     if vim.b[buf].nes_state then
-        local ns = vim.b[buf].copilotlsp_nes_namespace_id or nes_ns
-        nes_ui.clear_suggestion(buf, ns)
+        nes_ui.clear_suggestion(buf, nes_ns)
         return true
     end
     return false

@@ -27,6 +27,7 @@ function M.clear_suggestion(bufnr, ns_id)
     end
 
     -- Clear buffer variables
+    vim.b[bufnr].last_nes_state = vim.b[bufnr].nes_state
     vim.b[bufnr].nes_state = nil
     vim.b[bufnr].copilotlsp_nes_cursor_moves = nil
     vim.b[bufnr].copilotlsp_nes_last_line = nil
@@ -193,7 +194,6 @@ function M._display_next_suggestion(bufnr, ns_id, edits)
     M._display_preview(bufnr, ns_id, preview)
 
     vim.b[bufnr].nes_state = suggestion
-    vim.b[bufnr].copilotlsp_nes_namespace_id = ns_id
     vim.b[bufnr].copilotlsp_nes_cursor_moves = 1
 
     vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
