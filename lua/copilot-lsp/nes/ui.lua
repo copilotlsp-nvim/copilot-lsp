@@ -1,19 +1,55 @@
 local M = {}
 local config = require("copilot-lsp.config").config
 
+---@type fun(bufnr: integer): boolean|nil
+local stale_checker = nil
+
+---@param cb fun(bufnr: integer): boolean|nil
+function M.set_stale_checker(cb)
+    stale_checker = cb
+end
+
 ---@param bufnr integer
 ---@param ns_id integer
 local function _dismiss_suggestion(bufnr, ns_id)
     pcall(vim.api.nvim_buf_clear_namespace, bufnr, ns_id, 0, -1)
 end
 
+---@param bufnr integer
+local function _ensure_text_change_listener(bufnr)
+    if not vim.api.nvim_buf_is_valid(bufnr) or vim.b[bufnr].copilotlsp_nes_on_lines_attached then
+        return
+    end
+
+    local attached = vim.api.nvim_buf_attach(bufnr, false, {
+        on_lines = function(_, changed_bufnr)
+            if stale_checker then
+                stale_checker(changed_bufnr)
+            end
+        end,
+        on_detach = function(_, detached_bufnr)
+            if vim.api.nvim_buf_is_valid(detached_bufnr) then
+                vim.b[detached_bufnr].copilotlsp_nes_on_lines_attached = nil
+            end
+        end,
+    })
+
+    if attached then
+        vim.b[bufnr].copilotlsp_nes_on_lines_attached = true
+    end
+end
+
 ---@param bufnr? integer
 ---@param ns_id integer
-function M.clear_suggestion(bufnr, ns_id)
+---@param save_last? boolean
+function M.clear_suggestion(bufnr, ns_id, save_last)
     bufnr = bufnr and bufnr > 0 and bufnr or vim.api.nvim_get_current_buf()
     -- Validate buffer exists before accessing buffer-scoped variables
     if not vim.api.nvim_buf_is_valid(bufnr) then
         return
+    end
+    if save_last == nil then
+        save_last = true
     end
     if vim.b[bufnr].nes_jump then
         vim.b[bufnr].nes_jump = false
@@ -26,8 +62,14 @@ function M.clear_suggestion(bufnr, ns_id)
         return
     end
 
+    if save_last then
+        vim.b[bufnr].copilotlsp_nes_last_state = vim.deepcopy(state)
+        vim.b[bufnr].copilotlsp_nes_last_version = vim.b[bufnr].copilotlsp_nes_state_version
+    end
+
     -- Clear buffer variables
     vim.b[bufnr].nes_state = nil
+    vim.b[bufnr].copilotlsp_nes_state_version = nil
     vim.b[bufnr].copilotlsp_nes_cursor_moves = nil
     vim.b[bufnr].copilotlsp_nes_last_line = nil
     vim.b[bufnr].copilotlsp_nes_last_col = nil
@@ -195,6 +237,7 @@ function M._display_next_suggestion(bufnr, ns_id, edits)
     vim.b[bufnr].nes_state = suggestion
     vim.b[bufnr].copilotlsp_nes_namespace_id = ns_id
     vim.b[bufnr].copilotlsp_nes_cursor_moves = 1
+    _ensure_text_change_listener(bufnr)
 
     vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
         buffer = bufnr,
@@ -271,23 +314,6 @@ function M._display_next_suggestion(bufnr, ns_id, edits)
                 return true
             end
 
-            return false -- Keep the autocmd
-        end,
-    })
-    -- Also clear on text changes that affect the suggestion area
-    vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
-        buffer = bufnr,
-        callback = function()
-            if not vim.b[bufnr].nes_state then
-                return true
-            end
-            -- Check if the text at the suggestion position has changed
-            local start_line = suggestion.range.start.line
-            -- If the lines are no longer in the buffer, clear the suggestion
-            if start_line >= vim.api.nvim_buf_line_count(bufnr) then
-                M.clear_suggestion(bufnr, ns_id)
-                return true
-            end
             return false -- Keep the autocmd
         end,
     })

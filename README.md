@@ -39,10 +39,15 @@ return {
                         and require("copilot-lsp.nes").walk_cursor_end_edit()
                     )
                 return nil
-            else
-                -- Resolving the terminal's inability to distinguish between `TAB` and `<C-i>` in normal mode
-                return "<C-i>"
             end
+
+            -- optionally: try to re-show the most recent NES suggestion for this buffer
+            if nes.restore_last_nes(bufnr) then
+                return nil
+            end
+
+            -- Resolving the terminal's inability to distinguish between `TAB` and `<C-i>` in normal mode
+            return "<C-i>"
         end, { desc = "Accept Copilot NES suggestion", expr = true })
     end,
 }
@@ -60,6 +65,14 @@ vim.keymap.set("n", "<esc>", function()
     end
 end, { desc = "Clear Copilot suggestion or fallback" })
 ```
+
+#### Re-showing the last cleared suggestion
+
+`require("copilot-lsp.nes").restore_last_nes(bufnr)` returns `true` when it
+re-shows the most recent cleared NES suggestion for the `bufnr` buffer;
+defaults to current buffer. It returns `false` if there is already an active
+suggestion, if nothing has been cleared yet, or if the saved suggestion is
+stale.
 
 ## Default Configuration
 

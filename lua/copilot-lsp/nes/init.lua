@@ -4,12 +4,120 @@ local utils = require("copilot-lsp.util")
 
 local M = {}
 
+nes_ui.set_stale_checker(function(bufnr)
+    return M.clear_stale_active_nes(bufnr)
+end)
+
 local nes_ns = vim.api.nvim_create_namespace("copilotlsp.nes")
+
+---@param bufnr integer
+---@return integer
+local function get_nes_ns(bufnr)
+    if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
+        return nes_ns
+    end
+
+    return vim.b[bufnr].copilotlsp_nes_namespace_id or nes_ns
+end
+
+---@param state? copilotlsp.InlineEdit
+---@return boolean
+local function is_valid_nes(state)
+    return state ~= nil
+        and state.textDocument ~= nil
+        and state.textDocument.uri ~= nil
+        and state.range ~= nil
+        and state.range.start ~= nil
+        and state.range["end"] ~= nil
+        and state.newText ~= nil
+end
+
+---@param bufnr integer
+---@return integer?
+local function get_buf_version(bufnr)
+    return vim.lsp.util.buf_versions[bufnr]
+end
+
+---@param bufnr integer
+---@return copilotlsp.InlineEdit?
+local function get_last_nes(bufnr)
+    return vim.b[bufnr].copilotlsp_nes_last_state
+end
+
+---@param bufnr integer
+local function clear_last_nes(bufnr)
+    vim.b[bufnr].copilotlsp_nes_last_state = nil
+    vim.b[bufnr].copilotlsp_nes_last_version = nil
+end
+
+---@param bufnr integer
+---@return integer?
+local function get_nes_state_version(bufnr)
+    return vim.b[bufnr].copilotlsp_nes_state_version
+end
+
+---@param bufnr integer
+---@return integer?
+local function get_nes_last_version(bufnr)
+    return vim.b[bufnr].copilotlsp_nes_last_version
+end
+
+---@param bufnr integer
+---@param state copilotlsp.InlineEdit
+---@param request_version integer?
+---@return boolean
+local function is_stale_nes(bufnr, state, request_version)
+    if not is_valid_nes(state) then
+        return true
+    end
+
+    local current_version = get_buf_version(bufnr)
+
+    if request_version == nil or current_version == nil then
+        return true
+    end
+
+    return request_version ~= current_version
+end
+
+---@param bufnr? integer
+---@return boolean --if a stale active NES was cleared
+function M.clear_stale_active_nes(bufnr)
+    bufnr = bufnr and bufnr > 0 and bufnr or vim.api.nvim_get_current_buf()
+
+    if not vim.api.nvim_buf_is_valid(bufnr) then
+        return false
+    end
+
+    local state = vim.b[bufnr].nes_state
+    if not state then
+        return false
+    end
+
+    if not is_stale_nes(bufnr, state, get_nes_state_version(bufnr)) then
+        return false
+    end
+
+    vim.b[bufnr].nes_jump = false
+    nes_ui.clear_suggestion(bufnr, get_nes_ns(bufnr), false)
+    return true
+end
+
+---@param bufnr integer
+local function clear_pending_nes(bufnr)
+    if not vim.api.nvim_buf_is_valid(bufnr) then
+        return
+    end
+
+    vim.b[bufnr].nes_jump = false
+    nes_ui.clear_suggestion(bufnr, get_nes_ns(bufnr), false)
+end
 
 ---@param err lsp.ResponseError?
 ---@param result copilotlsp.copilotInlineEditResponse
 ---@param ctx lsp.HandlerContext
-local function handle_nes_response(err, result, ctx)
+---@param request_version integer?
+local function handle_nes_response(request_version, err, result, ctx)
     if err then
         vim.notify("[copilot-lsp] " .. err.message)
         return
@@ -18,11 +126,18 @@ local function handle_nes_response(err, result, ctx)
     if not vim.api.nvim_buf_is_valid(ctx.bufnr) then
         return
     end
+    if request_version ~= get_buf_version(ctx.bufnr) then
+        return
+    end
+    if not result or not result.edits or #result.edits == 0 then
+        return
+    end
     for _, edit in ipairs(result.edits) do
         --- Convert to textEdit fields
         edit.newText = edit.text
     end
-    if nes_ui._display_next_suggestion(ctx.bufnr, nes_ns, result.edits) then
+    if nes_ui._display_next_suggestion(ctx.bufnr, get_nes_ns(ctx.bufnr), result.edits) then
+        vim.b[ctx.bufnr].copilotlsp_nes_state_version = request_version
         local client = vim.lsp.get_client_by_id(ctx.client_id)
         assert(client, errs.ErrNotStarted)
         client:notify("textDocument/didShowInlineEdit", {
@@ -42,11 +157,13 @@ function M.request_nes(copilot_lss)
     end
     assert(copilot_lss, errs.ErrNotStarted)
     if copilot_lss.attached_buffers[bufnr] then
-        local version = vim.lsp.util.buf_versions[bufnr]
+        local version = get_buf_version(bufnr)
         local pos_params = vim.lsp.util.make_position_params(0, "utf-16")
         ---@diagnostic disable-next-line: inject-field
         pos_params.textDocument.version = version
-        copilot_lss:request("textDocument/copilotInlineEdit", pos_params, handle_nes_response)
+        copilot_lss:request("textDocument/copilotInlineEdit", pos_params, function(err, result, ctx)
+            handle_nes_response(version, err, result, ctx)
+        end)
     end
 end
 
@@ -158,18 +275,54 @@ function M.apply_pending_nes(bufnr)
     if not state then
         return false
     end
+    if M.clear_stale_active_nes(bufnr) then
+        return false
+    end
+    local active_version = get_nes_state_version(bufnr)
     vim.schedule(function()
+        if is_stale_nes(bufnr, state, active_version) then
+            clear_pending_nes(bufnr)
+            return
+        end
         utils.apply_inline_edit(state)
         vim.b[bufnr].nes_jump = false
-        nes_ui.clear_suggestion(bufnr, nes_ns)
+        nes_ui.clear_suggestion(bufnr, get_nes_ns(bufnr), false)
     end)
     return true
+end
+
+--- Re-show the last dismissed NES suggestion for the buffer if it is still valid.
+---@param bufnr? integer
+---@return boolean --if the nes was restored
+function M.restore_last_nes(bufnr)
+    bufnr = bufnr and bufnr > 0 and bufnr or vim.api.nvim_get_current_buf()
+
+    if not vim.api.nvim_buf_is_valid(bufnr) or vim.b[bufnr].nes_state then
+        return false
+    end
+
+    local state = get_last_nes(bufnr)
+    if not state then
+        return false
+    end
+
+    local last_version = get_nes_last_version(bufnr)
+    if is_stale_nes(bufnr, state, last_version) then
+        clear_last_nes(bufnr)
+        return false
+    end
+
+    local restored = nes_ui._display_next_suggestion(bufnr, get_nes_ns(bufnr), { vim.deepcopy(state) })
+    if restored then
+        vim.b[bufnr].copilotlsp_nes_state_version = last_version
+    end
+    return restored
 end
 
 ---@param bufnr? integer
 function M.clear_suggestion(bufnr)
     bufnr = bufnr and bufnr > 0 and bufnr or vim.api.nvim_get_current_buf()
-    nes_ui.clear_suggestion(bufnr, nes_ns)
+    nes_ui.clear_suggestion(bufnr, get_nes_ns(bufnr))
 end
 
 --- Clear the current suggestion if it exists
@@ -177,8 +330,7 @@ end
 function M.clear()
     local buf = vim.api.nvim_get_current_buf()
     if vim.b[buf].nes_state then
-        local ns = vim.b[buf].copilotlsp_nes_namespace_id or nes_ns
-        nes_ui.clear_suggestion(buf, ns)
+        nes_ui.clear_suggestion(buf, get_nes_ns(buf))
         return true
     end
     return false
